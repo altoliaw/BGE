@@ -1,0 +1,319 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+html{
+  height: 100%;
+}
+body {
+  	min-height: 100%;
+	width: 100%;
+	overflow: hidden;
+    background: url('../image/background.jpg') no-repeat top center;
+    -webkit-background-size: cover;
+}
+#Div_Stage {
+
+}
+
+/* Stage 1 HOME */
+#Div_Logo {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	color: #FFF;
+	font-size: 30px;
+  	transform: translate(-50%, -50%);
+}
+#Div_Button {
+	position: absolute;
+	top: 65%;
+	left: 50%;
+	color: #FFF;
+	font-size: 24px;
+  	transform: translate(-50%, -50%);
+}
+
+#Div_ChooseRoom, #Div_Room {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	color: #FFF;
+	font-size: 16px;
+  	transform: translate(-50%, -50%);
+}
+
+/* Stage 2 CHOOSE ROOM, Stage 3 ROOM*/
+#Div_ChooseRoom table, #Div_Room table{
+	width: 100%;
+    border-collapse: separate;
+    border-spacing: 5px 5px;
+    text-align: center;
+}
+#Div_ChooseRoom tr, #Div_Room tr{
+}
+#Div_ChooseRoom td, #Div_Room td{
+	padding: 25px;
+	width: 75px;
+	height: 75px;
+	background: #222;
+}
+.roomIsChoose {
+	background: #282 !important;
+}
+.roomIsFull {
+	background: #922 !important;
+}
+#Div_ChooseRoomBtn, #Div_RoomBtn {
+	text-align: center;
+}
+
+/* Stage 3 */
+.isSit {
+	background: #333333 !important;
+}
+
+.isReady {
+	background: #282 !important;
+}
+
+.isNotSit {
+	background: #666666 !important;
+}
+
+.isYou {
+	background: #228 !important;
+}
+
+
+/* Stage 4 */
+
+#Div_ShowGameOrder {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+  	transform: translate(-50%, -50%);
+}
+#Div_ShowGameOrder div {
+	opacity:0;
+	color: #FFF;
+	font-size: 16px;
+	margin: 10px;
+	padding: 25px 80px;
+	background: #333333;
+}
+
+.orderInAnimation {
+	-webkit-animation: orderInKeyframes cubic-bezier(1, 0, 0, 1) 0.5s;
+}
+.orderOutAnimation {
+	-webkit-animation: orderOutKeyframes cubic-bezier(1, 0, 0, 1) 0.5s;
+}
+
+@-webkit-keyframes orderInKeyframes {
+	from {
+		/*
+		-moz-transform: scale(0.1, 0.1);
+		-o-transform: scale(0.1, 0.1);
+		-ms-transform: scale(0.1, 0.1);
+		-webkit-transform: translate(100%, 50%);
+		*/
+		opacity: 0;
+		transform: rotate(15deg) skewY(15deg) translate(0%, -500%);
+	}
+	to {
+	}
+}
+
+@-webkit-keyframes orderOutKeyframes {
+	from {
+		/*
+		-moz-transform: scale(0.1, 0.1);
+		-o-transform: scale(0.1, 0.1);
+		-ms-transform: scale(0.1, 0.1);
+		-webkit-transform: translate(100%, 50%);
+		*/
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+		transform: rotate(-15deg) skewX(15deg) translate(0%, -500%);
+	}
+}
+
+
+
+/* Stage 5,6 */
+
+#Div_ShowCard {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+  	transform: translate(-50%, -50%);
+}
+#Div_ShowCard div {
+	float: left;
+	opacity: 0;
+	margin: 0 5px;
+}
+#Div_ShowCard div img {
+	width: 130px;
+}
+
+.isCanChoose {
+	cursor: pointer;
+}
+.isLock {
+	-webkit-filter: invert(0.2) grayscale(0.8);
+}
+
+#Div_LightBox {
+	display: none;
+	position: absolute;
+	width: 100%;
+	min-height: 100%;
+	background: rgba(0, 0, 0, 0.5);
+  	z-index: 6;
+}
+
+#Div_LightBox img {
+	cursor: pointer;
+}
+
+#Div_LightBoxContent {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+  	transform: translate(-50%, -50%);
+}
+
+#Div_ShowChooseCard img{
+	width: 350px;
+}
+
+#Div_ChooseCardBtn {
+	text-align: center;
+}
+
+#Div_ChooseCardBtn img{
+	transition: all 0.5s cubic-bezier(1, 0, 0, 1);
+	width: 100px;
+}
+
+
+.showCardInAnimation {
+	-webkit-animation: showCardInKeyframes cubic-bezier(1, 0, 0, 1) 0.5s;
+}
+.showCardOutAnimation {
+	-webkit-animation: showCardOutKeyframes cubic-bezier(1, 0, 0, 1) 0.5s;
+}
+
+@-webkit-keyframes showCardInKeyframes {
+	from {
+		/*
+		-moz-transform: scale(0.1, 0.1);
+		-o-transform: scale(0.1, 0.1);
+		-ms-transform: scale(0.1, 0.1);
+		-webkit-transform: translate(100%, 50%);
+		*/
+		opacity: 0;
+		transform: rotate(15deg) skewY(15deg) translate(-500%, 0%);
+	}
+	to {
+	}
+}
+
+@-webkit-keyframes showCardOutKeyframes {
+	from {
+		/*
+		-moz-transform: scale(0.1, 0.1);
+		-o-transform: scale(0.1, 0.1);
+		-ms-transform: scale(0.1, 0.1);
+		-webkit-transform: translate(100%, 50%);
+		*/
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+		transform: rotate(15deg) skewY(15deg) translate(500%, 0%);
+	}
+}
+
+
+/* Stage 7 */
+
+#Div_ShowVoteCard {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width:100%;
+  	transform: translate(-50%, -50%);
+  	z-index: 7
+}
+
+.voteCardRow {
+	text-align: center;
+	margin: 15px 0;
+}
+.voteCard {
+	margin: 0 auto;
+}
+.voteCard img {
+	transition: all 0.5s cubic-bezier(1, 0, 0, 1);
+	width: 140px;
+	margin: 0 10px;
+	position: relative;
+}
+.voteCard button {
+	display: none;
+    position: absolute;
+    z-index: 8;
+    width: 100px;
+    height: 30px;
+    margin: 100px 0 0 29px;
+}
+
+#Div_Answer {
+	display: none;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 800px;
+	height: 500px;
+  	transform: translate(-50%, -50%);
+  	background: rgba(255, 255, 255, 0.5);
+  	border-radius: 25px;
+}
+
+#Div_AnswerTitle {
+	text-align: center;
+	font-size: 50px;
+	margin: 20px;
+}
+
+#Div_AnswerList {
+	margin: 20px;
+	height: 350px;
+	overflow: auto;
+}
+
+.Div_AnswerItem {
+	clear:both;
+}
+.Div_AnswerItem img{
+	float: left;
+	height: 200px;
+	margin: 25px 25px 25px 0;
+}
+.Div_VotePeople {
+	float: left;
+	line-height: 250px;
+	font-size: 24px;
+}
+
+.Div_VotePeople span{
+	padding: 5px;
+	margin: 0 5px;
+  	background: rgba(50, 200, 50, 1);
+  	border-radius: 5px;
+}

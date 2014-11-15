@@ -9,4 +9,4 @@
 #mysql --host="$Varstr_Host" --user="$Varstr_User" --password="$Varstr_Password"
 
 #Resident the Server socket (Server/ConnectSocketServer.php)
-php Server/ConnectServerSocket.php
+php Server/ConnectSocketServer.php

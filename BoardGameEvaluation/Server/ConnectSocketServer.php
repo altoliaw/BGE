@@ -15,8 +15,6 @@ set_time_limit(0);
 $obj_Socket = socket_create(AF_INET, SOCK_STREAM, 0) or die("Can not create socket");
 
 // Bind socket
-//echo $obj_SocketInfo->GetSocketInfo()['Server'];
-//echo $obj_SocketInfo->GetSocketInfo()['Port'];
 $obj_Bind = socket_bind($obj_Socket, $obj_SocketInfo->GetSocketInfo()['Server'], $obj_SocketInfo->GetSocketInfo()['Port']) or die("Can not bind socket");
 
 //Critical section for listening the scoket

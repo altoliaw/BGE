@@ -1,0 +1,10 @@
+Enviroment :
+---Linux(ubuntu 12.04/14.10)
+---apache2
+---mysql
+---php5
+
+Description:
+For the first time for executation, the parameter (Varbool_IsSetUp) should be modified to the value 0.
+Then, execute the data "Process.sh" after preparing the environment.
+

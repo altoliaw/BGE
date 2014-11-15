@@ -1,0 +1,10 @@
+#!/bin/bash
+#Author		: Nick (廖冠登)
+#Date		: 20141111
+#Description	: Parameter for system
+
+Varbool_IsSetUp="0"
+
+function ParameterSetting(){
+	
+}

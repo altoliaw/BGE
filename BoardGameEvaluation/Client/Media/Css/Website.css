@@ -9,7 +9,7 @@ body {
   	min-height: 100%;
 	width: 100%;
 	overflow: hidden;
-    background: url('../image/background.jpg') no-repeat top center;
+    background: url('../Image/background.jpg') no-repeat top center;
     -webkit-background-size: cover;
 }
 #Div_Stage {

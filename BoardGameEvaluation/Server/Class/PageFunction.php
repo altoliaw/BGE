@@ -16,8 +16,15 @@ class PageFunction{
 					}
 				break;
 				case "playerjoin": 
-					if($objarr_GET["type"]=="write" ){
-						$strarr_Output						=$obj_TablesInformation->GetAllTablesFullStatusForJsonArray();
+					if($objarr_GET["type"]=="write"  && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET) && array_key_exists("act",$objarr_GET) && array_key_exists("role",$objarr_GET)){
+						if($objarr_GET["act"]=="join"){
+							if($objarr_GET["role"]=="teller"){
+								$strarr_Output				=$obj_TablesInformation->SetTablesInformation(new Players($objarr_GET["guid"],$$objarr_GET["roomid"],"0") );
+							}
+							else{
+							
+							}
+						}
 					}
 				break;
 				

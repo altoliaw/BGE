@@ -33,6 +33,10 @@ class Players{
 			return false;
 	}
 	
+	function GetSeatOrder(){
+			return $this->int_SeatOrder;
+	}
+	
 	function GetJoinStatus(){
 		return  $this->bool_JoinStaus;
 	}

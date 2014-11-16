@@ -10,8 +10,8 @@ class PageFunction{
 			}
 			switch($objarr_GET["target"]){
 				// roomisfull case
-				case "roomisfull": 
-					if(array_key_exists("roomid",$objarr_GET) &&$objarr_GET["type"]=="read" ){
+				case "hallroomstatus": 
+					if($objarr_GET["type"]=="read" ){
 						$strarr_Output						=$obj_TablesInformation->GetAllTablesFullStatusForJsonArray();
 					}
 				break;

@@ -5,8 +5,10 @@
 //	Description	:Sever Socket for connetion. Please resident this file in command line
 //===================================
 require_once "Class/SocketServer.php";
-require_once "Class/PageFunction.php";
+require_once "Class/Players.php";
 require_once "Class/TablesInformation.php";
+require_once "Class/PageFunction.php";
+
 
 $int_MaximumSocketLength							=133693415;
 $int_MaximumSocketListener						=50;
@@ -20,6 +22,17 @@ echo "Start  for resident of PHP\n" ;
 $obj_PageFunction										=new  PageFunction();
 //New a tableinformation object
 $obj_TablesInformation								=new TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber);
+//Test start
+$obj_TablesInformation->SetTablesInformation(new Players("123451","1","0"));
+$obj_TablesInformation->SetTablesInformation(new Players("123452","1","1"));
+$obj_TablesInformation->SetTablesInformation(new Players("123453","1","2"));
+$obj_TablesInformation->SetTablesInformation(new Players("123454","1","3"));
+$obj_TablesInformation->SetTablesInformation(new Players("123455","1","4"));
+$obj_TablesInformation->SetTablesInformation(new Players("123456","1","5"));
+$obj_TablesInformation->SetTablesInformation(new Players("123457","1","6"));
+$obj_TablesInformation->SetTablesInformation(new Players("123458","1","7"));
+//Test end
+
 
 $obj_SocketServer	= new SocketServer();
 $str_Output="";

@@ -16,13 +16,12 @@ class TablesInformation{
 		}
 		
 		function SetTablesInformation($obj_Palyer){
-			$bool_IsExistRoom							=array_key_exists(($obj_Palyer->int_RoomId-1),$objarr_TablesInformation);
+			$bool_IsExistRoom							=array_key_exists(($obj_Palyer->GetRoomId()-1),$this->objarr_TablesInformation);
 			if($bool_IsExistRoom== true){
-				//Check the players
 				$bool_IsExistMan							=false;
-				$objarr_PlayersSet							=&$objarr_TablesInformation[($obj_Palyer->int_RoomId-1)];// This is call by ref.
+				$objarr_PlayersSet							=&$this->objarr_TablesInformation[($obj_Palyer->GetRoomId()-1)];// This is call by ref.
 				for($i=0;$i<count($objarr_PlayersSet);$i++){
-					if($objarr_PlayersSet[$i]->str_PlayerGuid==$obj_Palyer->str_PlayerGuid){
+					if($objarr_PlayersSet[$i]->GetPlayerGuid()==$obj_Palyer->GetPlayerGuid()){
 						$bool_IsExistMan					=true;
 						$objarr_PlayersSet[$i]			=$obj_Palyer;
 						break;
@@ -38,7 +37,7 @@ class TablesInformation{
 				} 
 			}
 			else{
-				$objarr_TablesInformation[($obj_Palyer->int_RoomId-1)]=array($obj_Palyer);
+				$this->objarr_TablesInformation[($obj_Palyer->GetRoomId()-1)]=array($obj_Palyer);
 			}			
 		}
 		

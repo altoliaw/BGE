@@ -1,0 +1,11 @@
+<?php
+class Players{
+	private $str_Guid;
+	private $int_RoomId;	
+	private $int_SeatOrder;
+	private $bool_JoinStaus;
+	private $bool_IsMainTeller;
+	private $bool_DrawACardStaus;
+	private	$intarr_PokeStack;		
+}
+?>

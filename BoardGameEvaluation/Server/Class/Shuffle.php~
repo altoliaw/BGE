@@ -1,0 +1,6 @@
+<?php
+class Shuffle{
+	private var int_TotalNumberOfPoker;
+	private var intarr_PokerStack;
+}
+?>

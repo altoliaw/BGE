@@ -15,6 +15,11 @@ class PageFunction{
 						$strarr_Output						=$obj_TablesInformation->GetAllTablesFullStatusForJsonArray();
 					}
 				break;
+				case "playerjoin": 
+					if($objarr_GET["type"]=="write" ){
+						$strarr_Output						=$obj_TablesInformation->GetAllTablesFullStatusForJsonArray();
+					}
+				break;
 				
 				
 				default:

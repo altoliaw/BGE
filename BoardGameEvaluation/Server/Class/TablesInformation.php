@@ -184,11 +184,12 @@ class TablesInformation{
 		}
 
 		function SetPlayerStatus($int_TableId,$str_Guid){
+			var_dump($str_Guid);
 			$bool_IsSuccess									=false;
 			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)==true){
 				$objarr_PlayerSet							=&$this->objarr_TablesInformation[($int_TableId-1)] ;
-				foreach($tobjarr_PlayerSet as $key => &$value){ // $value is the Players
-					if($vlaue->GetPlayerGuid()==$str_Guid){
+				foreach($objarr_PlayerSet as $key => &$value){ // $value is the Players
+					if($value->GetPlayerGuid()==$str_Guid){
 						$value->SetJoinStatus(true);
 						$bool_IsSuccess						=true;
 						break;
@@ -221,7 +222,7 @@ class TablesInformation{
 					}
 				}
 			}
-			return array("SeatOrder"=>$$strarr_SeatOrder,"Status"=>$intarr_PlayerStatus);
+			return array("SeatOrder"=>$strarr_SeatOrder,"Status"=>$intarr_PlayerStatus);
 		}
 		
 		function GetPlayersStatusForJsonArray($int_TableId,$str_Guid){
@@ -238,7 +239,7 @@ class TablesInformation{
 				$int_IsReady										=-1;
 				if($value >=0){
 					$int_IsReady									=$value;
-					if($strarr_SeatOrder[$key]	== $$str_Guid){
+					if($strarr_SeatOrder[$key]	== $str_Guid){
 						$int_IsSelf								=1;
 					}
 				}
@@ -246,7 +247,7 @@ class TablesInformation{
 					$int_IsEmpty								=1;
 					$int_IsReady									=1;
 				}
-				$strarr_PlayerStaus[$key]					=array("order"=>(chr($key)+65),"isempty"=>$int_IsEmpty,"isself"=>$int_IsSelf,"isready"=>$int_IsReady);
+				$strarr_PlayerStaus[$key]					=array("order"=>(chr($key+65)),"isempty"=>$int_IsEmpty,"isself"=>$int_IsSelf,"isready"=>$int_IsReady);
 			}
 			return $strarr_PlayerStaus;
 		}

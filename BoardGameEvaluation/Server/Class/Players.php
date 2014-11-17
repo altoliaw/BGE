@@ -41,7 +41,7 @@ class Players{
 		return $this->int_SeatOrder;
 	}
 	function SetJoinStatus($bool_JoinStaus){
-		$this->bool_JoinStaus;
+		$this->bool_JoinStaus=$bool_JoinStaus;
 	}
 	
 	function GetJoinStatus(){

@@ -16,7 +16,7 @@ $int_MaximunManInTable							=8;
 $int_MaximunTableNumber							=9;
 
 //Start
-echo "Start  for resident of PHP\n" ;
+echo "Start for resident of PHP\n" ;
 
 //New page function object
 $obj_PageFunction										=new  PageFunction();
@@ -62,6 +62,7 @@ while (true) {
 	
 	// Write client input
 	$str_Output												=serialize($strarr_Output);
+	var_dump($obj_TablesInformation->GetSeatOrder(7));
 	$obj_SocketServer->Write($str_Output,"s");	
 }
 ?>

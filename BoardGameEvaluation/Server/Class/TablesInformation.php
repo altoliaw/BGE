@@ -89,14 +89,35 @@ class TablesInformation{
 		}
 		
 		function SetTablesInformationForJsonArray(&$obj_Player){
-			$boolarr_IsSuccess							=array();
 			$bool_IsSuccess									=false;
-			$bool_IsSuccess=$this->SetTablesInformation($obj_Player);
-			$boolarr_IsSuccess[]=array("success"=>((int)$bool_IsSuccess));
-			return $boolarr_IsSuccess;
+			$bool_IsSuccess									=$this->SetTablesInformation($obj_Player);
+			return array("success"=>((int)$bool_IsSuccess));
 		}
 		
+		function RemoveTablesInformation($int_TableId,$str_Guid){
+			$bool_IsSuccess									=false;
+			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)){
+				$objarr_PlayerSet							=array();
+				$objarr_PlayerSet							=$this->objarr_TablesInformation[($int_TableId-1)];
+				$objarr_NewPlayerSet					=array();
+				foreach($objarr_PlayerSet as $key =>$value){// $value is a player object
+					if($value->GetPlayerGuid()!=$str_Guid){
+						$objarr_NewPlayerSet[]			=$value;
+					}
+					else{
+						$bool_IsSuccess						=true;
+					}
+				}
+				$this->objarr_TablesInformation[($int_TableId-1)]	=$objarr_NewPlayerSet;
+			}
+			return $bool_IsSuccess;
+		}
 		
+		function RemoveTablesInformationForJsonArray($int_TableId,$str_Guid){
+			$bool_IsSuccess									=true;
+			$bool_IsSuccess									=$this->RemoveTablesInformation($int_TableId,$str_Guid);
+			return array("success"=>((int)$bool_IsSuccess));
+		}
 		
 		function GetAllTablesFullStatus(){
 			$boolarr_RoomIsEmpty=array();
@@ -122,7 +143,7 @@ class TablesInformation{
 			return  $boolarr_RoomIsEmptyJsonArray;	
 		}
 
-		// The parameter is starting at 1
+		// The parameter $int_TableId is starting at 1
 		function GetSeatOrder($int_TableId){
 			$intTableIndex									=($int_TableId-1);
 			$intarr_SeatGuid								=array();
@@ -150,6 +171,84 @@ class TablesInformation{
 				}
 			}
 			return $intarr_SeatGuid;
+		}
+		
+		function GetSeatOrderForJsonArray($int_TableId,$str_Guid){
+			$strarr_SeatGuid								=array();
+			$intarr_SeatGuid								=array();
+			$intarr_SeatGuid								=$this->GetSeatOrder($int_TableId);
+			foreach($intarr_SeatGuid as $key =>$value){// value is the string guid; if = -1, there is no man on the seat
+				$strarr_SeatGuid[]=array("order"=>chr(($key+65)),"isself"=>($value==$str_Guid?1:0),"isempty"=>($value==-1?1:0));
+			}
+			return $strarr_SeatGuid;
+		}
+
+		function SetPlayerStatus($int_TableId,$str_Guid){
+			$bool_IsSuccess									=false;
+			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)==true){
+				$objarr_PlayerSet							=&$this->objarr_TablesInformation[($int_TableId-1)] ;
+				foreach($tobjarr_PlayerSet as $key => &$value){ // $value is the Players
+					if($vlaue->GetPlayerGuid()==$str_Guid){
+						$value->SetJoinStatus(true);
+						$bool_IsSuccess						=true;
+						break;
+					}
+				}
+			}
+			return $bool_IsSuccess;
+		}
+		
+		function SetPlayerStatusForJsonArray($int_TableId,$str_Guid){
+			$bool_IsSuccess									=false;
+			$bool_IsSuccess										=$this->SetPlayerStatus($int_TableId,$str_Guid);
+			return array("success"=>((int)$bool_IsSuccess));			
+		}
+
+		function GetPlayersStatus($int_TableId){
+			$strarr_SeatOrder								=array();
+			$strarr_SeatOrder								=$this->GetSeatOrder($int_TableId);
+			$intarr_PlayerStatus								=array();
+			$intarr_PlayerStatus								=array_pad($intarr_PlayerStatus,$this->int_MaximunManInTable,-1);
+			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)==true){
+				$objarr_PlayerSet							=$this->objarr_TablesInformation[($int_TableId-1)] ;
+				foreach($strarr_SeatOrder as $key => $value){ //$value is the order GUID
+					if($value !=-1){
+						foreach($objarr_PlayerSet as $key2 => $value2){ // $value is the Players
+							if($value == $value2 ->GetPlayerGuid()){
+								$intarr_PlayerStatus[$key]=(int)($value2->GetJoinStatus());
+							}
+						}
+					}
+				}
+			}
+			return array("SeatOrder"=>$$strarr_SeatOrder,"Status"=>$intarr_PlayerStatus);
+		}
+		
+		function GetPlayersStatusForJsonArray($int_TableId,$str_Guid){
+			$intarr_PlayerSeatOrderAndStatus		=array();
+			$intarr_PlayerSeatOrderAndStatus		=($this->GetPlayersStatus($int_TableId));
+			$intarr_PlayerStaus								=array();
+			$intarr_PlayerStaus								=$intarr_PlayerSeatOrderAndStatus["Status"];
+			$strarr_SeatOrder								=array();
+			$strarr_SeatOrder								=$intarr_PlayerSeatOrderAndStatus["SeatOrder"];
+			$strarr_PlayerStaus								=array();
+			foreach($intarr_PlayerStaus as $key => $value){ // $value is the status of each man. (bool_JoinStaus) 1:yes, 0:false, -1:empty
+				$int_IsEmpty									=0;
+				$int_IsSelf										=0;
+				$int_IsReady										=-1;
+				if($value >=0){
+					$int_IsReady									=$value;
+					if($strarr_SeatOrder[$key]	== $$str_Guid){
+						$int_IsSelf								=1;
+					}
+				}
+				else{
+					$int_IsEmpty								=1;
+					$int_IsReady									=1;
+				}
+				$strarr_PlayerStaus[$key]					=array("order"=>(chr($key)+65),"isempty"=>$int_IsEmpty,"isself"=>$int_IsSelf,"isready"=>$int_IsReady);
+			}
+			return $strarr_PlayerStaus;
 		}
 }
 ?>

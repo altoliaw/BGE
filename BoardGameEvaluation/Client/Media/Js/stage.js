@@ -14,7 +14,7 @@ var API = {
 	ChooseRoomStatus: {
 		get: function(){
 			return $.ajax({
-				url: options.domain +  '/ConnectMiddleLayer.php?type=read&target=hallroomstatus',
+				url: options.domain +  '/ConnectMiddleLayer.php?type=read&target=hallroomstatus&guid=' +  Text_GUID,
 				dataType: 'jsonp',
 				type: 'GET',
 				jsonp: 'callback',
@@ -96,7 +96,8 @@ var API = {
 		order: {
 			get: function(opt){
 				return $.ajax({
-					url: 'ajax_getUserOrder.php?Int_RoomID=' + opt.Int_RoomID  + '&Bool_IsTellerProcess=' + opt.Bool_IsTellerProcess,
+				
+					url: options.domain +  '/ConnectMiddleLayer.php?type=read&target=playerorder&roomid=' + opt.Int_RoomID  + '&guid=' +  Text_GUID,
 					dataType: 'jsonp',
 					type: 'GET',
 					jsonp: 'callback',
@@ -118,7 +119,29 @@ var API = {
 					cache: false
 				}) ;
 			}
+		},
+		enter: function(opt){
+			return $.ajax({
+					url: options.domain + '/ConnectMiddleLayer.php?type=write&target=playerjoin&roomid=' + opt.Int_RoomID + '&guid=' + Text_GUID + '&act=join&role=' + opt.role,
+					dataType: 'jsonp',
+					type: 'GET',
+					jsonp: 'callback',
+					jsonpCallback: 'jsonp_roomenter',
+					cache: false
+				}) ;
+
+		},
+		leave: function(opt){
+			return $.ajax({
+					url: options.domain + '/ConnectMiddleLayer.php?type=write&target=playerjoin&roomid=' + opt.Int_RoomID + '&guid=' + Text_GUID + '&act=leave',
+					dataType: 'jsonp',
+					type: 'GET',
+					jsonp: 'callback',
+					jsonpCallback: 'jsonp_roomleave',
+					cache: false
+				}) ;
 		}
+		
 	},
 	card: {
 		decide: function(opt){
@@ -228,17 +251,17 @@ $(function () {
 
 	UI_Stage = $("#Div_Stage") ;
 	UI_Stage
-		// Press Start 進入選擇房間
+		// Stage1.選擇房間階段
 		.on("click", "#Btn_Start", function(){
 			clearStage()
 				.done(function(){
 					// 版型
 					var tables = '' 
-					for (var i = 0 ; i < 9 ; i++) 
+					for (var i = 1 ; i <= 9 ; i++) 
 		　			{
-		　				tables += '<td data-id="<' + i + '">第&nbsp;' + (i + 1) + '&nbsp;桌</td>' ;
-		　				if ((i+1) % 3 == 0  && i != 8) tables += '</tr><tr>' ;
-		　			}			
+		　				tables += '<td data-id="' + i + '">第&nbsp;' + i + '&nbsp;桌</td>' ;
+		　				if (i % 3 == 0  && i != 9) tables += '</tr><tr>' ;
+		　			}
 
 					var tpl = '<div id="Div_ChooseRoom">' +
 				　　　　　　	'<table>' +
@@ -270,28 +293,27 @@ $(function () {
 		.on("click", "#Btn_ChooseRoomByTeller, #Btn_ChooseRoomByUser", function(e){
 			var UI_ChooseRoom = UI_Stage.find(".roomIsChoose");
 			var Bool_IsChoose = UI_Stage.find(".roomIsChoose").length == 1;
-
 			if (Bool_IsChoose) {
-				// Debug
+
 				Bool_IsTellerProcess = $(this).attr("id").indexOf('Teller') != -1;
 
 				// 當下再檢查
-				var Int_RoomIDtmp = UI_ChooseRoom.data("id") ;
-				
-				API.checkRoomStatus.get({ Int_RoomID: Int_RoomIDtmp })
+				Int_RoomID = UI_ChooseRoom.data("id") ;
+				API.ChooseRoomStatus.get()
 					.done(function(data){
-						if (data.success == 1) {
-							clearTimeout(Event_RefreshChooseRoomStatus);
-							Int_RoomID = Int_RoomIDtmp;
+						$.each(data, function(idx, dat){
+							if (dat.Roomid == Int_RoomID && dat.isAvailable == true){
+								if (dat.isAvailable == true){
+									clearTimeout(Event_RefreshChooseRoomStatus);
 
-							// 換頁
-							$(document).trigger('_ENTER_ROOM') ;
-							
-							
-							
-						} else {
-							alert("第" + (Int_RoomIDtmp + 1) + "桌已滿！");
-						}
+									// 進入房間
+									$(document).trigger('_ENTER_ROOM', {role: (Bool_IsTellerProcess ? 'teller' : 'player'), Int_RoomID: Int_RoomID}) ;
+								}
+								else{
+									alert("第" + Int_RoomID + "桌已滿！");
+								}
+							}
+						});
 					});
 			} else {
 				alert("請先選擇");
@@ -362,42 +384,63 @@ $(function () {
 		});
 		
 	$(document)
-		.on('_ENTER_ROOM', function(){
-			API.user.order.get({Int_RoomID: Int_RoomID, Bool_IsTellerProcess : (Bool_IsTellerProcess == true ? 1 : 0) })
-				.done(function (data){
-					Int_RoomOrder = parseInt(data.order);
-					Bool_IsTeller = Int_RoomOrder == 0;
-					UI_Stage.fadeOut(Int_AnimationTime,function () {
+		.on('_ENTER_ROOM', function(e, opt){
+			// 進入房間 API
+			API.room.enter(opt)
+				.done(function(dat){
 
-						// RoomUI
-						var tables = '' 
-						for (var i = 0 ; i < 8 ; i++) 
-					　	{
-							tables += '<td data-id="' + i + '">' + (i + 1) + '</td>' ;
-					　		if ((i+1) % 4 == 0  && i != 7) tables += '</tr><tr>' ;
-					　	}			
+					if (dat.success == true){
 
-						var tpl = 	'<div id="Div_Room">' +
-									'<table>' +
-										'<tr>' +
-										tables + 
-										'</tr>' +
-									'</table>' +
-										'<div id="Div_RoomBtn">' +
-											'<button id="Btn_ReadyStart" class="ui-btn ui-btn-inline">準備</button>' +
-										'</div>' +
-									'</div>' ;
+						API.user.order.get({Int_RoomID: Int_RoomID, Bool_IsTellerProcess : (Bool_IsTellerProcess == true ? 1 : 0) })
+							.done(function (data){
+							
+								console.log(data) ;
+								return ;
+							
+								Int_RoomOrder = parseInt(data.order);
+								Bool_IsTeller = Int_RoomOrder == 0;
+								
+								clearStage
+									.done(function () {
+										// RoomUI
+										var tables = '' 
+										
+										$.each(data, function(idx, dat){
+											tables += '<td data-id="' + idx + '" class="' + (isself ? 'isYou' : ''  ) + '" >' + dat.order + '</td>' ;
 
-						UI_Stage.html(tpl);
-						UI_Room = $("#Div_Room");
-						UI_ReadyBtn = UI_Room.find("#Btn_ReadyStart");
-						if (Int_RoomOrder == 0) {
-							UI_ReadyBtn.text("開始").attr("disabled", true);
-						}
+										});
+										
+										for (var i = 0 ; i < 8 ; i++) 
+									　	{
+											tables += '<td data-id="' + i + '">' + (i + 1) + '</td>' ;
+									　		if ((i+1) % 4 == 0  && i != 7) tables += '</tr><tr>' ;
+									　	}			
 
-						getRoomStatus();
-						startStage();
-					})
+										// isReady, isYou, isSit , isNotSit
+									
+										var tpl = 	'<div id="Div_Room">' +
+													'<table>' +
+														'<tr>' +
+														tables + 
+														'</tr>' +
+													'</table>' +
+														'<div id="Div_RoomBtn">' +
+															'<button id="Btn_ReadyStart" class="ui-btn ui-btn-inline">準備</button>' +
+														'</div>' +
+													'</div>' ;
+
+										UI_Stage.html(tpl);
+										UI_Room = $("#Div_Room");
+										UI_ReadyBtn = UI_Room.find("#Btn_ReadyStart");
+										if (Int_RoomOrder == 0) {
+											UI_ReadyBtn.text("開始").attr("disabled", true);
+										}
+
+										getRoomStatus();
+										startStage();
+									});
+							}) ;
+					}
 				}) ;
 		});
 

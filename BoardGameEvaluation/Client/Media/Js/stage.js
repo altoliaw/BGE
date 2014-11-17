@@ -1,3 +1,9 @@
+//一般玩家檢查遊戲開始狀態	(使用檢查房間內人員準備狀態)
+
+//取得房內人數及排序 (使用檢查房間內人員準備狀態)
+
+
+
 var API = {
 	GUID: {
 		get: function(){
@@ -12,13 +18,16 @@ var API = {
 		}
 	},
 	ChooseRoomStatus: {
-		get: function(){
+		get: function(opt){
+			opt = (opt) ? opt : {} ;
+			opt.callback = opt.callback ? opt.callback : 'jsonp_getChooseRoomStatus'
+
 			return $.ajax({
 				url: options.domain +  '/ConnectMiddleLayer.php?type=read&target=hallroomstatus&guid=' +  Text_GUID,
 				dataType: 'jsonp',
 				type: 'GET',
 				jsonp: 'callback',
-				jsonpCallback: 'jsonp_getChooseRoomStatus',
+				jsonpCallback: opt.callback,
 				cache: false
 			}) ;
 		}
@@ -38,7 +47,7 @@ var API = {
 	game: {
 		ready: function(opt){
 			return $.ajax({
-				url: 'ajax_setReady.php?Int_RoomID=' + opt.Int_RoomID  + '&Int_RoomOrder=' + opt.Int_RoomOrder,
+				url: options.domain + '/ConnectMiddleLayer.php?type=write&target=playerready&roomid='+ opt.Int_RoomID + '&guid=' + Text_GUID,
 				dataType: 'jsonp',
 				type: 'GET',
 				jsonp: 'callback',
@@ -48,7 +57,7 @@ var API = {
 		},
 		start: function(opt){
 			return $.ajax({
-				url: 'ajax_setGameStart.php?Int_RoomID=' + opt.Int_RoomID  + '&Int_RoomOrder=' + opt.Int_RoomOrder,
+				url: options.domain + '/ConnectMiddleLayer.php?type=write&target=gamestart&roomid='+ opt.Int_RoomID + '&guid=' + Text_GUID,
 				dataType: 'jsonp',
 				type: 'GET',
 				jsonp: 'callback',
@@ -96,7 +105,6 @@ var API = {
 		order: {
 			get: function(opt){
 				return $.ajax({
-				
 					url: options.domain +  '/ConnectMiddleLayer.php?type=read&target=playerorder&roomid=' + opt.Int_RoomID  + '&guid=' +  Text_GUID,
 					dataType: 'jsonp',
 					type: 'GET',
@@ -111,11 +119,11 @@ var API = {
 		status:{
 			get: function(opt){
 				return $.ajax({
-					url: 'ajax_getRoomStatus.php?Int_RoomID=' + opt.Int_RoomID,
+					url: options.domain + '/ConnectMiddleLayer.php?type=read&target=playerready&roomid='+ opt.Int_RoomID + '&guid=' + Text_GUID,
 					dataType: 'jsonp',
 					type: 'GET',
 					jsonp: 'callback',
-					jsonpCallback: 'jsonp_getRoomStatus',
+					jsonpCallback: 'jsonp_Readystatus',
 					cache: false
 				}) ;
 			}
@@ -251,7 +259,7 @@ $(function () {
 
 	UI_Stage = $("#Div_Stage") ;
 	UI_Stage
-		// Stage1.選擇房間階段
+		// Stage1. 選擇房間階段
 		.on("click", "#Btn_Start", function(){
 			clearStage()
 				.done(function(){
@@ -282,25 +290,25 @@ $(function () {
 					startStage();
 				}) ;
 		})
-		// 選擇房間
+		// Stage1. 選擇房間
 		.on("click", "#Div_ChooseRoom td", function(){
 			if ($(this).attr("class") != "roomIsFull") {
 				$(this).parents().find("td").removeClass("roomIsChoose");
 				$(this).addClass("roomIsChoose");
 			}
 		})
-		// 選擇說書人或是一般
+		// Stage1. 選擇說書人或是一般
 		.on("click", "#Btn_ChooseRoomByTeller, #Btn_ChooseRoomByUser", function(e){
+			var _this = $(this);
 			var UI_ChooseRoom = UI_Stage.find(".roomIsChoose");
 			var Bool_IsChoose = UI_Stage.find(".roomIsChoose").length == 1;
 			if (Bool_IsChoose) {
-
-				Bool_IsTellerProcess = $(this).attr("id").indexOf('Teller') != -1;
-
-				// 當下再檢查
-				Int_RoomID = UI_ChooseRoom.data("id") ;
-				API.ChooseRoomStatus.get()
+				API.ChooseRoomStatus.get({callback:'jsonp_checkStatus'})
 					.done(function(data){
+
+						Int_RoomID = UI_ChooseRoom.data("id") ;
+						Bool_IsTellerProcess = _this.attr("id").indexOf('Teller') != -1;
+
 						$.each(data, function(idx, dat){
 							if (dat.Roomid == Int_RoomID && dat.isAvailable == true){
 								if (dat.isAvailable == true){
@@ -321,31 +329,68 @@ $(function () {
 		})
 		// 準備開始, 說書人一般共用
 		.on("click", "#Btn_ReadyStart", function(e){
-			API.game.ready({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
-				.done(function (data) {
-						UI_ReadyBtn.attr("disabled", true);
-						if (Bool_IsTeller) {
-							// Start Game
-							API.game.start({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
-								.done(function (data){
-									if (data.success == 1) {
-										clearTimeout(Event_RefreshRoomStatus);
-										enterShowGameOrder();
-									}
-								}) ;
-						} else {
-							// 一般玩家 Wait
-							API.game.wait({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
-								.done(function (data){
-									if (data.success == 1) {
-										clearTimeout(Event_RefreshRoomStatus);
-										clearTimeout(Event_RefreshWaitGameStart);
-										enterShowGameOrder();
-										return;
-									}
-									Event_RefreshWaitGameStart = setTimeout(waitGameStart, Int_RefreshTime);
-								}) ;
-						}
+
+			if (Bool_IsTeller){
+				API.game.start({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
+					.done(function (data){
+
+						console.log('teller',data) ;
+						
+							clearTimeout(Event_RefreshRoomStatus);
+							
+							return ;
+						//	enterShowGameOrder();
+					}) ;
+			}
+			else{
+				API.game.ready({ Int_RoomID: Int_RoomID})
+					.done(function (data) {
+							UI_ReadyBtn.attr("disabled", true);
+
+							console.log('player',data) ;
+							
+							clearTimeout(Event_RefreshRoomStatus);
+							
+							return ;
+							
+							if (Bool_IsTeller) {
+								// Start Game
+								API.game.start({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
+									.done(function (data){
+										if (data.success == 1) {
+											clearTimeout(Event_RefreshRoomStatus);
+											enterShowGameOrder();
+										}
+									}) ;
+							} else {
+							
+								return ;
+							
+								// 一般玩家 Wait
+								API.game.wait({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
+									.done(function (data){
+										if (data.success == 1) {
+											clearTimeout(Event_RefreshRoomStatus);
+											clearTimeout(Event_RefreshWaitGameStart);
+											enterShowGameOrder();
+											return;
+										}
+										Event_RefreshWaitGameStart = setTimeout(waitGameStart, Int_RefreshTime);
+									}) ;
+							}
+					}) ;
+			}
+		})
+		// 離開房間
+		.on('click', "#Btn_Exit", function(e){
+			API.room.leave({ Int_RoomID: Int_RoomID})
+				.done(function(dat){
+				
+					alert('離開第' + Int_RoomID + '桌') ;
+
+					// 暫時加入按鈕 (暫時解法)
+					UI_Stage.append('<button id="Btn_Start" class="ui-btn ui-btn-inline">START</button>') ;
+					$('#Btn_Start').trigger('click').remove() ;
 				}) ;
 		})
 		// 猜說書人牌階段的按鈕
@@ -390,34 +435,31 @@ $(function () {
 				.done(function(dat){
 
 					if (dat.success == true){
-
-						API.user.order.get({Int_RoomID: Int_RoomID, Bool_IsTellerProcess : (Bool_IsTellerProcess == true ? 1 : 0) })
+						API.user.order.get({Int_RoomID: Int_RoomID})
 							.done(function (data){
-							
-								console.log(data) ;
-								return ;
-							
-								Int_RoomOrder = parseInt(data.order);
-								Bool_IsTeller = Int_RoomOrder == 0;
-								
-								clearStage
-									.done(function () {
-										// RoomUI
-										var tables = '' 
-										
-										$.each(data, function(idx, dat){
-											tables += '<td data-id="' + idx + '" class="' + (isself ? 'isYou' : ''  ) + '" >' + dat.order + '</td>' ;
 
-										});
-										
-										for (var i = 0 ; i < 8 ; i++) 
-									　	{
-											tables += '<td data-id="' + i + '">' + (i + 1) + '</td>' ;
-									　		if ((i+1) % 4 == 0  && i != 7) tables += '</tr><tr>' ;
-									　	}			
+								
+								Bool_IsTeller = false ;
+
+								clearStage()
+									.done(function () {
+
+										var tables = '' 
+										$.each(data, function(idx, dat){
+											tables += '<td data-id="' + idx + '" class="' + (dat.isself ? 'isYou' : '' ) + (dat.isempty ? ' isNotSit' : ' isSit' ) + '" >' + dat.order + '</td>' ;
+
+											if ((idx+1) % 4 == 0  && idx != 7){
+												tables += '</tr><tr>' ;
+											}
+											
+											if (idx == 0 && dat.isself)
+											{
+												Bool_IsTeller = true
+											}
+									　	}) ;
 
 										// isReady, isYou, isSit , isNotSit
-									
+
 										var tpl = 	'<div id="Div_Room">' +
 													'<table>' +
 														'<tr>' +
@@ -426,17 +468,19 @@ $(function () {
 													'</table>' +
 														'<div id="Div_RoomBtn">' +
 															'<button id="Btn_ReadyStart" class="ui-btn ui-btn-inline">準備</button>' +
+															'<button id="Btn_Exit" class="ui-btn ui-btn-inline">離開</button>' +
 														'</div>' +
 													'</div>' ;
 
 										UI_Stage.html(tpl);
 										UI_Room = $("#Div_Room");
 										UI_ReadyBtn = UI_Room.find("#Btn_ReadyStart");
-										if (Int_RoomOrder == 0) {
+										if (Bool_IsTeller) {
 											UI_ReadyBtn.text("開始").attr("disabled", true);
 										}
 
 										getRoomStatus();
+
 										startStage();
 									});
 							}) ;
@@ -472,9 +516,25 @@ $(function () {
 
 	// 持續檢查 房間是否可開始
 	function getRoomStatus () {
-		API.room.status.get({ Int_RoomID: Int_RoomID })
+		API.room.status.get({Int_RoomID: Int_RoomID})
 			.done(function (data) {
-				UI_Room.find(".isYou").removeClass("isYou");
+				
+				$.each(data, function(idx, dat){
+					var UI_NowTd = UI_Room.find("table td").eq(idx);
+					
+					if (dat.isempty == true)
+						UI_NowTd.addClass('isNotSit') ;
+					else
+						UI_NowTd.addClass('isSit') ;
+
+					if (dat.isready == true)
+						UI_NowTd.addClass('isReady') ;
+					
+				});
+				
+				Event_RefreshRoomStatus = setTimeout(getRoomStatus, Int_RefreshTime);
+
+				
 				for (var i in data) {
 					var UI_NowTd = UI_Room.find("table td").eq(i);
 					if (parseInt(data[i]['placeHolder']) == 1) {

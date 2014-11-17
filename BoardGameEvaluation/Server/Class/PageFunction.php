@@ -18,12 +18,13 @@ class PageFunction{
 				case "playerjoin": 
 					if($objarr_GET["type"]=="write"  && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET) && array_key_exists("act",$objarr_GET) && array_key_exists("role",$objarr_GET)){
 						if($objarr_GET["act"]=="join"){
+							$int_BodyId						=-1;
 							if($objarr_GET["role"]=="teller"){
-								$strarr_Output				=$obj_TablesInformation->SetTablesInformation(new Players($objarr_GET["guid"],$$objarr_GET["roomid"],"0") );
-							}
-							else{
-							
-							}
+								$int_BodyId					=0;
+							}							
+							$strarr_Output					=$obj_TablesInformation->SetTablesInformationForJsonArray(new Players($objarr_GET["guid"],((int)$objarr_GET["roomid"]),$int_BodyId));
+						}
+						else if($objarr_GET["act"]=="leave"){
 						}
 					}
 				break;

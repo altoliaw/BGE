@@ -1,8 +1,8 @@
 <?php
 class Players{
 	private $str_PlayerGuid;
-	private $int_RoomId;	
-	private $int_SeatOrder;
+	private $int_RoomId;// The first value is starting at 1
+	private $int_SeatOrder;// The first value is starting at 0, and 0 is the teller, and others are players
 	private $bool_JoinStaus;
 	private $bool_IsMainTeller;
 	private $bool_DrawACardStaus;
@@ -33,12 +33,26 @@ class Players{
 			return false;
 	}
 	
+	function SetSeatOrder($int_SeatOrder){
+		$this->int_SeatOrder=$int_SeatOrder;
+	}
+	
 	function GetSeatOrder(){
-			return $this->int_SeatOrder;
+		return $this->int_SeatOrder;
 	}
 	
 	function GetJoinStatus(){
 		return  $this->bool_JoinStaus;
 	}
+	
+	function SetIsTeller($bool_IsMainTeller){
+		$this->bool_IsMainTeller						=$bool_IsMainTeller;
+	}
+	
+	function GetIsTeller(){
+			return $this->bool_IsMainTeller;
+	}
+	
+
 }
 ?>

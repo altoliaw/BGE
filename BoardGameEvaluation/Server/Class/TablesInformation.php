@@ -8,11 +8,16 @@ class TablesInformation{
 		private $objarr_TablesInformation;
 		private $int_MaximunManInTable;
 		private $int_MaximunTableNumber;
+		private $objarr_CardOnTheTable;
+		private $int_MaximumNumberPokerForEachMan;
 		
-		function TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber){
+		function TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber,$int_MaximumNumberPokerForEachMan,$int_TotalNumberOfPoker){
 			$this->objarr_TablesInformation		=array();
 			$this->int_MaximunManInTable		=$int_MaximunManInTable;
 			$this->int_MaximunTableNumber	=$int_MaximunTableNumber;
+			$this->int_MaximumNumberPokerForEachMan	=$int_MaximumNumberPokerForEachMan;
+			$this->objarr_CardOnTheTable			=array();
+			$this->objarr_CardOnTheTable			=array_pad($this->objarr_CardOnTheTable,$this->int_MaximunTableNumber,(new CardStack($int_TotalNumberOfPoker)));
 		}
 		
 		function SetTablesInformation(&$obj_Player){
@@ -250,6 +255,10 @@ class TablesInformation{
 				$strarr_PlayerStaus[$key]					=array("order"=>(chr($key+65)),"isempty"=>$int_IsEmpty,"isself"=>$int_IsSelf,"isready"=>$int_IsReady);
 			}
 			return $strarr_PlayerStaus;
+		}
+
+		function SetPlayPoker($bool_IsNewGame){
+			
 		}
 }
 ?>

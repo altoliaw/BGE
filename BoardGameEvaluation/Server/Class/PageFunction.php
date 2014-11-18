@@ -47,7 +47,12 @@ class PageFunction{
 						if($objarr_GET["type"]=="write" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET)){
 							$strarr_Output							=$obj_TablesInformation->SetPlayerStatusForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"]);
 						}
-					break;				
+					break;	
+					case "cardstack":
+						if($objarr_GET["type"]=="read" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET)){
+						}
+					break;
+								
 					default:
 						$strarr_Output=array("error"=>"targetnotfound");
 					break;				

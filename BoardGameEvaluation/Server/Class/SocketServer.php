@@ -70,7 +70,9 @@ Class SocketServer{
 	
 	function Close($str_Mode=""){
 		switch($str_Mode){
-			case "s"://for server				
+			case "s"://for server	
+				socket_close($this->obj_Spawn);
+				socket_close($this->obj_Socket);
 			break;
 			case "c"://for client
 				socket_close($this->obj_Socket);

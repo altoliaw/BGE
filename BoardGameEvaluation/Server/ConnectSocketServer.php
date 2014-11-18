@@ -24,7 +24,7 @@ echo "Start for resident of PHP\n" ;
 //New page function object
 $obj_PageFunction										=new  PageFunction();
 //New a tableinformation object
-$obj_TablesInformation								=new TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber,$int_MaximumNumberPokerForEachMan);
+$obj_TablesInformation								=new TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber,$int_MaximumNumberPokerForEachMan,$int_TotalNumberOfPoker);
 //Test start
 //$obj_TablesInformation->SetTablesInformation(new Players("123451",1,0));
 //$obj_TablesInformation->SetTablesInformation(new Players("123452",1,-1));

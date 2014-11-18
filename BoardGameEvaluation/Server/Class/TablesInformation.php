@@ -10,14 +10,19 @@ class TablesInformation{
 		private $int_MaximunTableNumber;
 		private $objarr_CardOnTheTable;
 		private $int_MaximumNumberPokerForEachMan;
+		private $intarr_PlayCount;
 		
 		function TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber,$int_MaximumNumberPokerForEachMan,$int_TotalNumberOfPoker){
 			$this->objarr_TablesInformation		=array();
 			$this->int_MaximunManInTable		=$int_MaximunManInTable;
 			$this->int_MaximunTableNumber	=$int_MaximunTableNumber;
 			$this->int_MaximumNumberPokerForEachMan	=$int_MaximumNumberPokerForEachMan;
+			$this->intarr_PlayCount						=array();
+			$this->intarr_PlayCount						=array_pad($this->intarr_PlayCount,$this->int_MaximunTableNumber,0);
 			$this->objarr_CardOnTheTable			=array();
-			$this->objarr_CardOnTheTable			=array_pad($this->objarr_CardOnTheTable,$this->int_MaximunTableNumber,(new CardStack($int_TotalNumberOfPoker)));
+			for($i=0;$i<$this->int_MaximunTableNumber;$i++){
+				$this->objarr_CardOnTheTable	[]=new CardStack($int_TotalNumberOfPoker);
+			}
 		}
 		
 		function SetTablesInformation(&$obj_Player){
@@ -109,7 +114,10 @@ class TablesInformation{
 					if($value->GetPlayerGuid()!=$str_Guid){
 						$objarr_NewPlayerSet[]			=$value;
 					}
-					else{
+					else{// The user is leaving
+						//give user's the poker back to the discard stack
+						$obj_CardStack						=&$this->objarr_CardOnTheTable[$int_TableId];
+						$obj_CardStack->RecycleOneManCards($value->GetPokeStack());
 						$bool_IsSuccess						=true;
 					}
 				}
@@ -189,7 +197,6 @@ class TablesInformation{
 		}
 
 		function SetPlayerStatus($int_TableId,$str_Guid){
-			var_dump($str_Guid);
 			$bool_IsSuccess									=false;
 			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)==true){
 				$objarr_PlayerSet							=&$this->objarr_TablesInformation[($int_TableId-1)] ;
@@ -257,8 +264,76 @@ class TablesInformation{
 			return $strarr_PlayerStaus;
 		}
 
-		function SetPlayPoker($bool_IsNewGame){
-			
+		private function SetPlayPoker($int_TableId, $str_Guid){
+			//Add the count of playing
+			if(array_key_exists(($int_TableId-1),$this->intarr_PlayCount)==true){
+				$this->intarr_PlayCount[($int_TableId-1)]=($this->intarr_PlayCount[($int_TableId-1)]++);
+			}
+			//Draw a card/ or cards
+			$strarr_PlayerSet								=array();
+			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)==true){
+				$strarr_PlayerSet							=&$this->objarr_TablesInformation[($int_TableId-1)];
+			}
+			$boolarr_IsFullCard							=array();
+			$boolarr_IsFullCard							=array_pad($boolarr_IsFullCard,count($strarr_PlayerSet),false);
+			do{
+				$obj_CardStack								=&$this->objarr_CardOnTheTable[($int_TableId-1)];
+				$intarr_Card									=array();									
+				$intarr_Card									=$obj_CardStack->DrawACard(count($strarr_PlayerSet));
+				var_dump($intarr_Card);
+				foreach($intarr_Card as $key =>$value){
+					if(array_key_exists($key,$strarr_PlayerSet)){
+						if($boolarr_IsFullCard[$key]==false){//Draw a card
+							$obj_Player							=&$strarr_PlayerSet[$key];
+							$boolarr_IsFullCard[$key]	=$obj_Player->CheckIsFullCard($this->int_MaximumNumberPokerForEachMan);
+							if($boolarr_IsFullCard[$key]==false){
+								$obj_Player->InsertACard($value);
+							}
+							else	{// If full, send the card back to the discard array
+								$obj_CardStack->CollectDiscardCard(array($value));
+							}
+						}
+						else{// If full, send the card back to the discard array
+							var_dump("yes");
+							$obj_CardStack->CollectDiscardCard(array($value));
+						}
+					}
+					else{// The user is not existing, send the card back to the stack
+						var_dump("yes2");
+						$obj_CardStack->CollectDiscardCard(array($value));
+					}
+				}
+				$bool_IsFullCardForALLMan			=true;
+				foreach($boolarr_IsFullCard as  $key => $value){
+					$bool_IsFullCardForALLMan		=($bool_IsFullCardForALLMan & $value);
+				}
+				if($bool_IsFullCardForALLMan== true){// all man have full of cards
+					break;
+				}
+			}while(true);			
+		}
+
+		function GetAPlayerCardStackInformation($int_TableId, $str_Guid){
+			$this->SetPlayPoker($int_TableId, $str_Guid);
+			$intarr_PokerCards							=array();
+			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)){
+				$obj_PlayerSet								=$this->objarr_TablesInformation[($int_TableId-1)];
+				foreach($obj_PlayerSet as $key =>$value){
+					if($value->GetPlayerGuid()==$str_Guid){
+						$intarr_PokerCards				=$value->GetPokeStack();
+						break;
+					}
+				}
+			}
+			return $intarr_PokerCards;
+		}
+		
+		function GetAPlayerCardStackInformationForJsonArray($int_TableId, $str_Guid){
+			$strarr_Output									=array();
+			$intarr_PokerCards							=array();
+			$intarr_PokerCards							=$this->GetAPlayerCardStackInformation($int_TableId, $str_Guid);
+			$strarr_Output["cards"]						=$intarr_PokerCards;
+			return $strarr_Output;
 		}
 }
 ?>

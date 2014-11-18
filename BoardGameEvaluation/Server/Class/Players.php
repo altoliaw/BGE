@@ -56,6 +56,21 @@ class Players{
 			return $this->bool_IsMainTeller;
 	}
 	
+	function GetPokeStack(){
+		return $this->intarr_PokeStack;
+	}
+	
+	function InsertACard($int_CardNumber){
+		$this->intarr_PokeStack[]						=$int_CardNumber;
+	}
+	
+	function CheckIsFullCard($int_MaximumCardNumber){
+		$bool_IsFullCard									=false;
+		if(count($this->intarr_PokeStack)>=$int_MaximumCardNumber){
+			$bool_IsFullCard								=true;
+		}
+		return $bool_IsFullCard;
+	}
 
 }
 ?>

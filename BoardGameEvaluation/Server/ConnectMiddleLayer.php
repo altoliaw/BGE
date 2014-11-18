@@ -27,6 +27,7 @@ $str_Result														=$obj_SocketServer->Read($int_MaximumSocketLength);
 $strarr_Result													=unserialize($str_Result);
 
 $obj_Json 						= json_encode($strarr_Result) ;
+header('Content-type: application/x-javascript');
 echo sprintf('%s(%s)',$str_CallBack, $obj_Json) ;
 
 // Close socket

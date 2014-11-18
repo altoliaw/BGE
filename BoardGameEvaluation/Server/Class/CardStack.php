@@ -16,7 +16,6 @@ class CardStack{
 			for($i=0;$i<$int_TotalNumberOfPoker;$i++){
 				$this->intarr_PokerDiscardStack[]=($i+1);	
 			}
-			var_dump($this->intarr_PokerDiscardStack);			
 	}
 	
 	function ShufflePoker(){

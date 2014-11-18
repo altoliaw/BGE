@@ -50,6 +50,7 @@ class PageFunction{
 					break;	
 					case "cardstack":
 						if($objarr_GET["type"]=="read" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET)){
+							$strarr_Output							=$obj_TablesInformation->GetAPlayerCardStackInformationForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"]);
 						}
 					break;
 								

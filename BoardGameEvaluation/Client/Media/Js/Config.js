@@ -21,7 +21,7 @@ var Int_AnimationTime = 300;	// AnimationTime
 var Int_RefreshTime = 500;		// Refresh Freq
 var Int_RoomID;					// RoomID
 var Int_RoomOrder;			
-var Int_CheckRoomIsReadyStart = 7;	// 足夠人數設定
+var Int_LeastPlayerNum = 3;	// 最少人數設定
 var Int_PlayerCount;				//
 var Int_ShowGameOrderIndex;
 var Int_ShowGameOrderTime = 500;

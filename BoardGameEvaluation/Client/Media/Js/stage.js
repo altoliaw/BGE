@@ -65,16 +65,6 @@ var API = {
 				cache: false
 			}) ;
 		},
-		wait: function(opt){
-			return $.ajax({
-				url: 'ajax_waitGameStart.php?Int_RoomID=' + opt.Int_RoomID  + '&Int_RoomOrder=' + opt.Int_RoomOrder,
-				dataType: 'jsonp',
-				type: 'GET',
-				jsonp: 'callback',
-				jsonpCallback: 'jsonp_gamewait',
-				cache: false
-			}) ;
-		},
 		userorder: {
 			get: function(opt){
 				return $.ajax({
@@ -329,55 +319,22 @@ $(function () {
 		})
 		// 準備開始, 說書人一般共用
 		.on("click", "#Btn_ReadyStart", function(e){
-
 			if (Bool_IsTeller){
-				API.game.start({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
+				API.game.start({Int_RoomID: Int_RoomID})
 					.done(function (data){
+						clearTimeout(Event_RefreshRoomStatus);
+					
+						return;
 
-						console.log('teller',data) ;
-						
-							clearTimeout(Event_RefreshRoomStatus);
-							
-							return ;
-						//	enterShowGameOrder();
+						enterShowGameOrder();
 					}) ;
 			}
 			else{
 				API.game.ready({ Int_RoomID: Int_RoomID})
 					.done(function (data) {
-							UI_ReadyBtn.attr("disabled", true);
-
-							console.log('player',data) ;
-							
-							clearTimeout(Event_RefreshRoomStatus);
-							
-							return ;
-							
-							if (Bool_IsTeller) {
-								// Start Game
-								API.game.start({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
-									.done(function (data){
-										if (data.success == 1) {
-											clearTimeout(Event_RefreshRoomStatus);
-											enterShowGameOrder();
-										}
-									}) ;
-							} else {
-							
-								return ;
-							
-								// 一般玩家 Wait
-								API.game.wait({ Int_RoomID: Int_RoomID,	Int_RoomOrder: Int_RoomOrder})
-									.done(function (data){
-										if (data.success == 1) {
-											clearTimeout(Event_RefreshRoomStatus);
-											clearTimeout(Event_RefreshWaitGameStart);
-											enterShowGameOrder();
-											return;
-										}
-										Event_RefreshWaitGameStart = setTimeout(waitGameStart, Int_RefreshTime);
-									}) ;
-							}
+						// 按鈕反灰, 檢查是否說書人按下開始
+						UI_ReadyBtn.prop("disabled", true);
+						getGameStatus();
 					}) ;
 			}
 		})
@@ -385,7 +342,9 @@ $(function () {
 		.on('click', "#Btn_Exit", function(e){
 			API.room.leave({ Int_RoomID: Int_RoomID})
 				.done(function(dat){
-				
+
+					// 離開後要停止監控房間
+					clearTimeout(Event_RefreshRoomStatus);
 					alert('離開第' + Int_RoomID + '桌') ;
 
 					// 暫時加入按鈕 (暫時解法)
@@ -437,13 +396,9 @@ $(function () {
 					if (dat.success == true){
 						API.user.order.get({Int_RoomID: Int_RoomID})
 							.done(function (data){
-
-								
 								Bool_IsTeller = false ;
-
 								clearStage()
 									.done(function () {
-
 										var tables = '' 
 										$.each(data, function(idx, dat){
 											tables += '<td data-id="' + idx + '" class="' + (dat.isself ? 'isYou' : '' ) + (dat.isempty ? ' isNotSit' : ' isSit' ) + '" >' + dat.order + '</td>' ;
@@ -498,7 +453,7 @@ $(function () {
 		return UI_Stage.fadeIn(Int_AnimationTime).promise();
 	}
 
-	// 持續檢查 RoomStatus
+	// 持續檢查 房間狀態, 大廳UI
 	function getChooseRoomStatus () {
 		API.ChooseRoomStatus.get()
 			.done(function (data) {
@@ -514,52 +469,65 @@ $(function () {
 			});
 	}
 
-	// 持續檢查 房間是否可開始
+	// 持續檢查 房間狀態, 房間UI
 	function getRoomStatus () {
 		API.room.status.get({Int_RoomID: Int_RoomID})
 			.done(function (data) {
-				
+				var bool_canStart = true ;
+			
 				$.each(data, function(idx, dat){
 					var UI_NowTd = UI_Room.find("table td").eq(idx);
 					
-					if (dat.isempty == true)
+					UI_NowTd.removeClass('isNotSit isSit isReady') ;
+
+					if (dat.isempty == true){
 						UI_NowTd.addClass('isNotSit') ;
-					else
+					}else{
 						UI_NowTd.addClass('isSit') ;
-
-					if (dat.isready == true)
-						UI_NowTd.addClass('isReady') ;
-					
-				});
-				
-				Event_RefreshRoomStatus = setTimeout(getRoomStatus, Int_RefreshTime);
-
-				
-				for (var i in data) {
-					var UI_NowTd = UI_Room.find("table td").eq(i);
-					if (parseInt(data[i]['placeHolder']) == 1) {
-						UI_NowTd.text(ArrayText_SeatCode[i]);
-						if (parseInt(data[i]['ready']) == 1) {
-							UI_NowTd.addClass("isReady");
-						} else if (i == Int_RoomOrder) {
-							UI_NowTd.addClass("isYou");
-						} else {
-							UI_NowTd.addClass("isSit");
-						}
-						continue;
 					}
-					UI_NowTd.text(parseInt(i) + 1).addClass("isNotSit");
-				}
-				
-				
-				if (Bool_IsTeller) {
-					isOK = (UI_Room.find(".isReady").length + UI_Room.find(".isNotSit").length == Int_CheckRoomIsReadyStart);
-					UI_ReadyBtn.attr("disabled", (isOK ? false : true)) ;
-				}
+
+					if (dat.isready == true && dat.isempty == false){
+						UI_NowTd.addClass('isReady') ;
+					}
+
+					if (idx != 0){
+						bool_canStart = (bool_canStart && dat.isready) ;
+					}
+				});
 
 				Event_RefreshRoomStatus = setTimeout(getRoomStatus, Int_RefreshTime);
+
+				// 說書人檢查遊戲開始
+				if (Bool_IsTeller) {
+					// 人員準備好 且 房內大於等於最低人數
+					var isOK = bool_canStart && ($('td.isSit').length >= Int_LeastPlayerNum) ;
+					UI_ReadyBtn.prop("disabled", !isOK) ;
+				}
 			}) ;
 	}
+	
+	// 持續檢查 遊戲是否可開始
+	function getGameStatus(){
+		API.room.status.get({Int_RoomID: Int_RoomID})
+			.done(function (data) {
+				var bool_canStart = true ;
+			
+				$.each(data, function(idx, dat){
+					bool_canStart = (bool_canStart && dat.isready) ;
+				});
+
+				if (bool_canStart){
+					clearTimeout(Event_RefreshRoomStatus);
+					clearTimeout(Event_RefreshWaitGameStart);
+					enterShowGameOrder() ;
+					return;
+				}else{
+					Event_RefreshWaitGameStart = setTimeout(getGameStatus, Int_RefreshTime);
+				}
+			});
+	}
+	
+	
 
 	/* Stage 4 */
 	function enterShowGameOrder () {
@@ -589,6 +557,7 @@ $(function () {
 			}) ;
 	}
 
+	// 發牌階段 新局開始
 	function orderInAnimation () {
 		if (Int_PlayerCount == Int_ShowGameOrderIndex) {
 			Int_ShowGameOrderIndex = 0;
@@ -777,7 +746,7 @@ $(function () {
 		$(".isShowButton").css("display", "none").removeClass(".isShowButton");
 	}
 
-	/* Stage 7 */
+	// 最後階段, 要可以觸發回 發牌階段 新局開始
 	function showAnswer () {
 		clearStage()
 			.done(function(){
@@ -805,6 +774,6 @@ $(function () {
 							$("#Div_AnswerList").html(AnswerItemsHTML);
 						}
 					});	
-			})
+			}) ;
 	}
 });

@@ -1,9 +1,3 @@
-//一般玩家檢查遊戲開始狀態	(使用檢查房間內人員準備狀態)
-
-//取得房內人數及排序 (使用檢查房間內人員準備狀態)
-
-
-
 var API = {
 	GUID: {
 		get: function(){
@@ -28,18 +22,6 @@ var API = {
 				type: 'GET',
 				jsonp: 'callback',
 				jsonpCallback: opt.callback,
-				cache: false
-			}) ;
-		}
-	},
-	checkRoomStatus: {
-		get: function(opt){
-			return $.ajax({
-				url: 'ajax_checkRoomStatus.php?' + opt.Int_RoomID,
-				dataType: 'jsonp',
-				type: 'GET',
-				jsonp: 'callback',
-				jsonpCallback: 'jsonp_getChooseRoomStatus',
 				cache: false
 			}) ;
 		}
@@ -91,29 +73,20 @@ var API = {
 			}
 		}
 	},
-	user:{
-		order: {
-			get: function(opt){
-				return $.ajax({
-					url: options.domain +  '/ConnectMiddleLayer.php?type=read&target=playerorder&roomid=' + opt.Int_RoomID  + '&guid=' +  Text_GUID,
-					dataType: 'jsonp',
-					type: 'GET',
-					jsonp: 'callback',
-					jsonpCallback: 'jsonp_userorder',
-					cache: false
-				}) ;
-			}
-		}
-	},
 	room: {
 		status:{
 			get: function(opt){
+				opt = opt ? opt : {};
+				opt.callback = opt.callback ? opt.callback : 'jsonp_Readystatus';
+				
+			
+			
 				return $.ajax({
 					url: options.domain + '/ConnectMiddleLayer.php?type=read&target=playerready&roomid='+ opt.Int_RoomID + '&guid=' + Text_GUID,
 					dataType: 'jsonp',
 					type: 'GET',
 					jsonp: 'callback',
-					jsonpCallback: 'jsonp_Readystatus',
+					jsonpCallback: opt.callback,
 					cache: false
 				}) ;
 			}
@@ -184,7 +157,7 @@ var API = {
 			self: {
 				get: function(opt){
 					return $.ajax({
-						url: 'ajax_getShowCard.php?Int_RoomID=' + opt.Int_RoomID + '&Int_RoomOrder=' + Int_RoomOrder,
+					    url: options.domain + '/ConnectMiddleLayer.php?type=read&target=cardstack&roomid='+ opt.Int_RoomID  +'&guid=' + Text_GUID,
 						dataType: 'jsonp',
 						type: 'GET',
 						jsonp: 'callback',
@@ -356,9 +329,6 @@ $(function () {
 							API.room.status.get({Int_RoomID: Int_RoomID})
 								.done(function (data) {
 									var bool_canStart = true ;
-
-								console.log(data[0]) ;
-									
 									$.each(data, function(idx, dat){
 										bool_canStart = (idx == 0)
 											? (bool_canStart && dat.isready && dat.isempty == false) // 說書人一定要在房內
@@ -432,7 +402,7 @@ $(function () {
 			API.room.enter(opt)
 				.done(function(dat){
 					if (dat.success == true){
-						API.user.order.get({Int_RoomID: Int_RoomID})
+						API.room.status.get({Int_RoomID: Int_RoomID, callback: 'jsonp_userorder1'})
 							.done(function (data){
 								Bool_IsTeller = false ;
 								clearStage()
@@ -476,7 +446,7 @@ $(function () {
 
 										// 持續檢查 房間狀態, 房間UI
 										var getRoomStatus = function () {
-											API.room.status.get({Int_RoomID: Int_RoomID})
+											API.room.status.get({Int_RoomID: Int_RoomID, callback: 'jsonp_roomuicheck'})
 												.done(function (data) {
 													var bool_canStart = true ;
 
@@ -514,21 +484,28 @@ $(function () {
 		.on('_SHOW_GAME_ORDER', function(){
 			clearStage()
 				.done(function () {
-					API.game.userorder.get({ Int_RoomID : Int_RoomID })
+					API.room.status.get({Int_RoomID: Int_RoomID, callback:'jsonp_userorder2'})
 						.done(function (data) {
-							Int_PlayerCount = data.playerCount;
+							Int_PlayerCount = 0;
 							Int_ShowGameOrderIndex = 0;
-
+							
 							// 過場版型
 							var _makeShowOrder = (function(){
 								var ShowGameOrderHTML = "<div id=\"Div_ShowGameOrder\">";
-								for (var i in data.order) {
-									if (data.order[i] == ArrayText_SeatCode[Int_RoomOrder]) {
-										ShowGameOrderHTML += "<div class=\"isYou\">" + data.order[i] + "</div>";
-									} else {
-										ShowGameOrderHTML += "<div>" + data.order[i] + "</div>";
+								$.each(data, function(idx, dat){
+									if (dat.isempty == true){
+										return;
 									}
-								}
+									
+									Int_PlayerCount++;
+
+									if (dat.isself == true) {
+										ShowGameOrderHTML += "<div class=\"isYou\">" + dat.order + "</div>";
+									} else {
+										ShowGameOrderHTML += "<div>" + dat.order + "</div>";
+									}
+								});
+
 								ShowGameOrderHTML += "</div>";
 								UI_Stage.html(ShowGameOrderHTML);
 							})();
@@ -577,17 +554,19 @@ $(function () {
 		})
 		// Stage.4 發牌階段 新局開始
 		.on('_SHOW_CARD', function(){
-			API.card.show.self.get({Int_RoomID : Int_RoomID,Int_RoomOrder : Int_RoomOrder})
+			API.card.show.self.get({Int_RoomID : Int_RoomID})
 				.done(function (data) {
 					// 由最後階段回來時需要做
 					UI_LightBox.fadeOut(Int_LightBoxProcessTime)
 					startStage();
 					
+					var card = data.cards ;
+					
 					// 卡片版型
 					var _makeCard = (function () {
 						var ShowCard = "<div id=\"Div_ShowCard\">";
-						for (var i in data) {
-							var Int_CardID = data[i];
+						for (var i in card) {
+							var Int_CardID = card[i];
 							ShowCard += "<div class=\"showCard\">" +
 										"<img data-card-id=\"" + Int_CardID +"\" src=\"media/card/" + Int_CardID + ".png\" />" +
 										"</div>";

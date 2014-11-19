@@ -1,3 +1,5 @@
+// 要有說書人才能 ready
+
 var API = {
 	GUID: {
 		get: function(){
@@ -10,6 +12,8 @@ var API = {
 				cache: false
 			}) ;
 		}
+		
+		//?type=write&target=choosecard&roomid=%s&cardid=%s&guid=%s
 	},
 	ChooseRoomStatus: {
 		get: function(opt){
@@ -125,29 +129,19 @@ var API = {
 					cache: false
 				}) ;
 		},
-		teller: {
-			chooseStatus:{
-				get: function(opt){
-					return $.ajax({
-						url: 'ajax_getTellerChooseCardStatus.php?Int_RoomID=' + opt.Int_RoomID,
-						dataType: 'jsonp',
-						type: 'GET',
-						jsonp: 'callback',
-						jsonpCallback: 'jsonp_choosestatusteller',
-						cache: false
-					}) ;
-				}
-			}
-		},
 		player: {
 			chooseStatus:{
 				get: function(opt){
+				
+					opt = (opt) ? opt : {} ;
+					opt.callback = opt.callback ? opt.callback : 'jsonp_choosestatusplayer'
+				
 					return $.ajax({
-						url: 'ajax_getUserChooseCardStatus.php?Int_RoomID=' + opt.Int_RoomID,
+						url: options.domain + '/ConnectMiddleLayer.php?type=read&target=choosecard&roomid=' + opt.Int_RoomID + '&guid=' + Text_GUID ,
 						dataType: 'jsonp',
 						type: 'GET',
 						jsonp: 'callback',
-						jsonpCallback: 'jsonp_choosestatusplayer',
+						jsonpCallback: opt.callback,
 						cache: false
 					}) ;
 				}
@@ -258,16 +252,18 @@ $(function () {
 						API.ChooseRoomStatus.get()
 							.done(function (data) {
 								$.each(data, function(idx, dat){
-									if (dat.isAvailable == false){
+									if (dat.isAvailable == false || dat.isReady == true){
 										UI_ChooseRoom.find("table td").eq((dat.Roomid - 1))
 										.removeClass("roomIsChoose")
 										.addClass("roomIsFull");
 									}
-								})
-							});
-					}
+								}) ;
 
-					Event_RefreshChooseRoomStatus = setInterval(getChooseRoomStatus, Int_RefreshTime) ;
+								Event_RefreshChooseRoomStatus = setTimeout(getChooseRoomStatus, Int_RefreshTime) ;
+							});
+					};
+
+					getChooseRoomStatus();
 
 					startStage();
 				});
@@ -294,7 +290,7 @@ $(function () {
 						$.each(data, function(idx, dat){
 							if (dat.Roomid == Int_RoomID && dat.isAvailable == true){
 								if (dat.isAvailable == true){
-									clearInterval(Event_RefreshChooseRoomStatus);
+									clearTimeout(Event_RefreshChooseRoomStatus);
 
 									// 進入房間
 									$(document).trigger('_ENTER_ROOM', {role: (Bool_IsTellerProcess ? 'teller' : 'player'), Int_RoomID: Int_RoomID}) ;
@@ -314,7 +310,7 @@ $(function () {
 			if (Bool_IsTeller){
 				API.game.start({Int_RoomID: Int_RoomID})
 					.done(function (data){
-						clearInterval(Event_RefreshRoomStatus);
+						clearTimeout(Event_RefreshRoomStatus);
 						$(document).trigger('_SHOW_GAME_ORDER');
 					}) ;
 			}
@@ -336,14 +332,17 @@ $(function () {
 									});
 
 									if (bool_canStart){
-										clearInterval(Event_RefreshRoomStatus);
-										clearInterval(Event_RefreshWaitGameStart);
+										clearTimeout(Event_RefreshRoomStatus);
+										clearTimeout(Event_RefreshWaitGameStart);
 										$(document).trigger('_SHOW_GAME_ORDER');
+									}
+									else{
+										Event_RefreshWaitGameStart = setTimeout(getGameStatus, Int_RefreshTime);
 									}
 								});
 						}
 
-						Event_RefreshWaitGameStart = setInterval(getGameStatus, Int_RefreshTime);
+						getGameStatus() ;
 					}) ;
 			}
 		})
@@ -387,7 +386,7 @@ $(function () {
 			API.card.decide({Int_RoomID : Int_RoomID,Int_ChooseCardID : Int_ChooseCardID})
 				.done(function (data) {
 					if(data.success == 1) {
-						waitUserChooseCard();
+						waitAllUserChooseCard();
 					}
 				}) ;
 		})
@@ -469,10 +468,13 @@ $(function () {
 														var isOK = bool_canStart && ($('td.isSit').length >= Int_LeastPlayerNum) ;
 														UI_ReadyBtn.prop("disabled", !isOK) ;
 													}
+													
+													Event_RefreshRoomStatus = setTimeout(getRoomStatus, Int_RefreshTime);
 												}) ;
 										}
 
-										Event_RefreshRoomStatus = setInterval(getRoomStatus, Int_RefreshTime);
+										getRoomStatus()
+										
 
 										startStage();
 									});
@@ -519,7 +521,7 @@ $(function () {
 									// 排序 out
 									var _orderOutAnimation = function () {
 										if (Int_PlayerCount == Int_ShowGameOrderIndex) {
-											clearInterval(Event_out) ;
+											clearTimeout(Event_out) ;
 
 											$(document).trigger('_SHOW_CARD');
 											return;
@@ -530,11 +532,13 @@ $(function () {
 												.addClass("orderOutAnimation");
 
 												Int_ShowGameOrderIndex ++;
+												
+											Event_out = setTimeout(_orderOutAnimation, Int_ShowGameOrderTime);
 										}
 									}
 
-									var Event_out = setInterval(_orderOutAnimation, Int_ShowGameOrderTime);
-									return ;
+									_orderOutAnimation();
+									
 								}else{
 									$("#Div_ShowGameOrder div")
 										.eq(Int_PlayerCount - 1 - Int_ShowGameOrderIndex)
@@ -542,11 +546,12 @@ $(function () {
 										.addClass("orderInAnimation");
 
 									Int_ShowGameOrderIndex ++;
-									return ;
+
+									Event_Showorder = setTimeout(orderAnimation, Int_ShowGameOrderTime);
 								}
 							};
 
-							var Event_Showorder = setInterval(orderAnimation, Int_ShowGameOrderTime);
+							orderAnimation();
 						}) ;
 
 					startStage();
@@ -559,9 +564,9 @@ $(function () {
 					// 由最後階段回來時需要做
 					UI_LightBox.fadeOut(Int_LightBoxProcessTime)
 					startStage();
-					
+
 					var card = data.cards ;
-					
+
 					// 卡片版型
 					var _makeCard = (function () {
 						var ShowCard = "<div id=\"Div_ShowCard\">";
@@ -580,14 +585,14 @@ $(function () {
 					// 發牌動畫
 					var showCardInAnimation = function () {
 						if (Int_ShowCardCount == Int_ShowCardIndex) {
-							clearInterval(Event_CardIn);
+							clearTimeout(Event_CardIn);
 
 							Int_ShowCardIndex = 0;
 							if (Bool_IsTeller == true) {
 								startChooseCard();
 							} else {
 								lookChooseCard();
-								waitTellerChooseCard();
+								waitChooseCard();
 							}
 							return ;
 						}
@@ -598,10 +603,12 @@ $(function () {
 								.addClass("showCardInAnimation");
 
 							Int_ShowCardIndex ++;
+							
+							Event_CardIn = setTimeout(showCardInAnimation, Int_ShowCardTime);
 						}
 					};
-					
-					var Event_CardIn = setInterval(showCardInAnimation, Int_ShowCardTime);
+
+					showCardInAnimation() ;
 				}) ;
 		})
 		// Stage.4 出牌階段結束, 卡片移除
@@ -700,33 +707,58 @@ $(function () {
 		UI_LightBox.find("#Div_ShowChooseCard img").attr("src", "media/card/" + Int_ChooseCardID + ".png");
 	}
 
-	function waitUserChooseCard() {
-		API.card.player.chooseStatus.get({ Int_RoomID : Int_RoomID })
+	// 所有玩家選完牌後要過場動畫
+	function waitAllUserChooseCard() {
+		API.card.player.chooseStatus.get({ Int_RoomID : Int_RoomID, callback: 'jsonp_waitAllUserChooseCard'})
 			.done(function (data) {
-				if (data.success == 1) {
+				
+				var bool_isAllPlayerChoosed = true;
+
+				$.each(data, function(idx, dat){
+					bool_isAllPlayerChoosed = (bool_isAllPlayerChoosed && dat.isReady);
+				});
+
+				if (bool_isAllPlayerChoosed == true) {
 					$(document).trigger('_OUT_CARD') ;
 				} else {
-					setTimeout(waitUserChooseCard, Int_RefreshTime);
+					setTimeout(waitAllUserChooseCard, Int_RefreshTime);
 				}
-			}) ;
+
+		}) ;
 	}
 
-	function waitTellerChooseCard() {
-		API.card.player.chooseStatus.get({ Int_RoomID : Int_RoomID })
+	// 等自己的前一家選完牌才可選牌
+	function waitChooseCard() {
+		API.card.player.chooseStatus.get({ Int_RoomID : Int_RoomID , callback: 'jsonp_waitChooseCard'})
 			.done(function (data) {
-				if (data.success == 1) {
+				var bool_canChoose = true ;
+
+				$.each(data, function(idx, dat){
+					if (dat.isself == true){
+						return false;
+					}
+
+					bool_canChoose = (bool_canChoose && dat.isReady);
+				});
+
+				if (bool_canChoose == true){
 					startChooseCard();
 				} else {
-					setTimeout(waitTellerChooseCard, Int_RefreshTime);
+					setTimeout(waitChooseCard, Int_RefreshTime);
 				}
 			}) ;
 	}
 
 	function lookChooseCard () {
 		UI_LightBox.fadeOut(Int_LightBoxProcessTime);
-		UI_ShowCardDIV.find(".showCard").removeClass("isCanChoose");
-		UI_ShowCardDIV.find("img").addClass("isLock");
-		UI_ShowCardDIV.off("click", ".showCard", showLightBox);
+		UI_ShowCardDIV
+			.find(".showCard")
+			.removeClass("isCanChoose")
+			.end()
+			.find("img")
+			.addClass("isLock")
+			.end()
+			.off("click", ".showCard", showLightBox);
 	}
 
 	function startChooseCard () {

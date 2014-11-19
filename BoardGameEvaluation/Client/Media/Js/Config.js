@@ -18,7 +18,7 @@ var Event_RefreshChooseRoomStatus; // Chose Room Status From setTimeout
 var Event_RefreshRoomStatus;	   // RoomStatus From setTimeout
 var Event_RefreshWaitGameStart;
 var Int_AnimationTime = 300;	// AnimationTime
-var Int_RefreshTime = 500;		// Refresh Freq
+var Int_RefreshTime = 1000;		// Refresh Freq
 var Int_RoomID;					// RoomID
 var Int_LeastPlayerNum = 2;	// 最少人數設定
 var Int_PlayerCount;				//

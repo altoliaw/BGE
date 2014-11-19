@@ -150,8 +150,23 @@ class TablesInformation{
 		function GetAllTablesFullStatusForJsonArray(){
 			$boolarr_RoomIsEmptyJsonArray		=array();
 			$boolarr_RoomIsEmpty= $this->GetAllTablesFullStatus();
-			foreach($boolarr_RoomIsEmpty as $key => $value){
-				$boolarr_RoomIsEmptyJsonArray[$key]=array("Roomid"=>($key+1),"isAvailable"=>((int)$value));
+			foreach($boolarr_RoomIsEmpty as $key => $value){				
+				$intarr_PlayerSeatOrderAndStatus=array();
+				$intarr_PlayerSeatOrderAndStatus=$this->GetPlayersStatus(($key+1));
+				$intarr_PlayerStaus						=array();
+				$intarr_PlayerStaus						=$intarr_PlayerSeatOrderAndStatus["Status"];			
+				$bool_IsReady								=false;
+				$bool_HasMan								=true;
+				foreach($intarr_PlayerStaus as $key2 =>$value2){					
+					if($value2 > -1){					
+						$value2									=(boolean)$value2;
+					}
+					$bool_HasMan 							=$bool_HasMan & $value2;
+				}
+				if($bool_HasMan == true){
+					$bool_IsReady							=true;
+				}
+				$boolarr_RoomIsEmptyJsonArray[$key]=array("Roomid"=>($key+1),"isAvailable"=>((int)$value),"isReady"=>((int)$bool_IsReady));
 			}
 			return  $boolarr_RoomIsEmptyJsonArray;	
 		}
@@ -242,8 +257,8 @@ class TablesInformation{
 			$intarr_PlayerSeatOrderAndStatus		=($this->GetPlayersStatus($int_TableId));
 			$intarr_PlayerStaus								=array();
 			$intarr_PlayerStaus								=$intarr_PlayerSeatOrderAndStatus["Status"];
-			$strarr_SeatOrder								=array();
-			$strarr_SeatOrder								=$intarr_PlayerSeatOrderAndStatus["SeatOrder"];
+			$strarr_SeatOrder									=array();
+			$strarr_SeatOrder									=$intarr_PlayerSeatOrderAndStatus["SeatOrder"];
 			$strarr_PlayerStaus								=array();
 			foreach($intarr_PlayerStaus as $key => $value){ // $value is the status of each man. (bool_JoinStaus) 1:yes, 0:false, -1:empty
 				$int_IsEmpty									=0;

@@ -13,7 +13,7 @@ var API = {
 			}) ;
 		}
 		
-		//?type=write&target=choosecard&roomid=%s&cardid=%s&guid=%s
+		
 	},
 	ChooseRoomStatus: {
 		get: function(opt){
@@ -51,22 +51,10 @@ var API = {
 				cache: false
 			}) ;
 		},
-		userorder: {
-			get: function(opt){
-				return $.ajax({
-					url: 'ajax_getShowGameOrder.php?Int_RoomID=' + opt.Int_RoomID,
-					dataType: 'jsonp',
-					type: 'GET',
-					jsonp: 'callback',
-					jsonpCallback: 'jsonp_gameuserorder',
-					cache: false
-				}) ;
-			}
-		},
 		result: {
 			get: function(opt){
 				return $.ajax({
-					url: 'ajax_getAnswer.php?Int_RoomID=' + opt.Int_RoomID,
+					url: options.domain + '/ConnectMiddleLayer.php?type=read&target=gameresult&roomid=' + opt.Int_RoomID + '&guid=' +  Text_GUID,
 					dataType: 'jsonp',
 					type: 'GET',
 					jsonp: 'callback',
@@ -82,9 +70,7 @@ var API = {
 			get: function(opt){
 				opt = opt ? opt : {};
 				opt.callback = opt.callback ? opt.callback : 'jsonp_Readystatus';
-				
-			
-			
+
 				return $.ajax({
 					url: options.domain + '/ConnectMiddleLayer.php?type=read&target=playerready&roomid='+ opt.Int_RoomID + '&guid=' + Text_GUID,
 					dataType: 'jsonp',
@@ -121,7 +107,7 @@ var API = {
 	card: {
 		decide: function(opt){
 			return $.ajax({
-					url: 'ajax_decideCard.php?Int_RoomID=' + opt.Int_RoomID + '&Int_ChooseCardID=' + opt.Int_ChooseCardID,
+					url: options.domain + '/ConnectMiddleLayer.php?type=write&target=choosecard&roomid=' + opt.Int_RoomID + '&cardid=' + opt.Int_ChooseCardID + '&guid=' + Text_GUID,
 					dataType: 'jsonp',
 					type: 'GET',
 					jsonp: 'callback',
@@ -163,7 +149,7 @@ var API = {
 			all: {
 				get: function(opt){
 					return $.ajax({
-							url: 'ajax_getVoteCard.php?Int_RoomID=' + opt.Int_RoomID,
+							url: options.domain + '/ConnectMiddleLayer.php?type=read&target=cardstacktable&roomid=' + opt.Int_RoomID + '&guid=' + Text_GUID,
 							dataType: 'jsonp',
 							type: 'GET',
 							jsonp: 'callback',
@@ -176,7 +162,7 @@ var API = {
 		vote: {
 			set: function(opt){
 				return $.ajax({
-							url: 'ajax_setVoteCard.php?Int_VoteID=' + opt.Int_VoteID,
+							url: options.domain + '/ConnectMiddleLayer.php?type=write&target=votestatus&roomid=' + opt.Int_RoomID +'&cardid=' + opt.Int_VoteID + '&guid=' + Text_GUID,
 							dataType: 'jsonp',
 							type: 'GET',
 							jsonp: 'callback',
@@ -184,17 +170,15 @@ var API = {
 							cache: false
 						}) ;
 			},
-			status: {
-				get: function(opt){
-					return $.ajax({
-							url: 'ajax_getUserVoteCardStatus.php?Int_RoomID=' + opt.Int_RoomID,
-							dataType: 'jsonp',
-							type: 'GET',
-							jsonp: 'callback',
-							jsonpCallback: 'jsonp_choosestatusplayer',
-							cache: false
-						}) ;
-				}
+			get: function(opt){
+				return $.ajax({
+						url: options.domain + '/ConnectMiddleLayer.php?type=read&target=votestatus&roomid=' + opt.Int_RoomID + '&guid=' + Text_GUID,
+						dataType: 'jsonp',
+						type: 'GET',
+						jsonp: 'callback',
+						jsonpCallback: 'jsonp_voteget',
+						cache: false
+					}) ;
 			}
 		}
 	}
@@ -362,20 +346,27 @@ $(function () {
 		})
 		// 猜說書人牌階段的按鈕
 		.on("click", ".voteCard button", function(e){
+
+			
+			Int_VoteID = $(e.target).data("vote-id");
+			
+			if (Int_VoteID == Int_ChooseCardID){
+				alert('不可選自己的牌喔!');
+				return;
+			}
+
 			$("body").off("click", cancelOtherLockVoteCard);
 			UI_LightBox.fadeOut(Int_AnimationTime);
 			UI_ShowVoteCardDIV.find(".voteCard img").removeClass("isLock").removeClass("isChoose");
 			$(".isShowButton").css("display", "none").removeClass(".isShowButton");
-			Int_VoteID = $(e.target).data("vote-id");
 
-			API.card.vote.set({Int_VoteID : Int_VoteID})
+			API.card.vote.set({Int_VoteID : Int_VoteID, Int_RoomID: Int_RoomID})
 				.done(function (data) {
 					if (data.success) {
 						lockVoteCard();
 						waitUserVoteCard();
 					}
 				}) ;
-
 		}) ;
 
 	UI_LightBox = $("#Div_LightBox");
@@ -467,7 +458,11 @@ $(function () {
 														// 人員準備好 且 房內大於等於最低人數
 														var isOK = bool_canStart && ($('td.isSit').length >= Int_LeastPlayerNum) ;
 														UI_ReadyBtn.prop("disabled", !isOK) ;
+													}else{
+														//var isTellerNotInRoom = (data[0].isempty == true) ;
+														//UI_ReadyBtn.prop("disabled", isTellerNotInRoom) ;
 													}
+													
 													
 													Event_RefreshRoomStatus = setTimeout(getRoomStatus, Int_RefreshTime);
 												}) ;
@@ -516,7 +511,7 @@ $(function () {
 							var orderAnimation = function () {
 								if (Int_PlayerCount == Int_ShowGameOrderIndex) {
 									Int_ShowGameOrderIndex = 0;
-									clearInterval(Event_Showorder);
+									clearTimeout(Event_Showorder);
 
 									// 排序 out
 									var _orderOutAnimation = function () {
@@ -636,15 +631,17 @@ $(function () {
 					// 投票版型
 					var _makeVote = (function(){
 						var VoteCardHTML = "<div id=\"Div_ShowVoteCard\"><div class=\"voteCardRow\">";
-						for (var i in data.card) {
+						
+						$.each(data.cards, function(i, card){
 							VoteCardHTML += "<span class=\"voteCard\">" +
-											"<button data-vote-id=\""+ data.card[i] + "\" >OK</button>" +
-											"<img src=\"media/card/" + data.card[i] + ".png\" />" +
+											"<button data-vote-id=\""+ card + "\" >OK</button>" +
+											"<img src=\"media/card/" + card + ".png\" />" +
 											"</span>";
 							if (i != 0 && i % 3 == 0) {
 								VoteCardHTML += "</div><div class=\"voteCardRow\">";
 							}
-						}
+						});
+
 						VoteCardHTML += "</div></div>";
 						UI_Stage.html(VoteCardHTML);
 						UI_ShowVoteCardDIV = $("#Div_ShowVoteCard");
@@ -671,16 +668,21 @@ $(function () {
 					API.game.result.get({ Int_RoomID : Int_RoomID })
 						.done(function (data) {
 							var AnswerItemsHTML = "";
-							for (var i in data) {
+							
+							var result = data.result
+
+							for (var i in result) {
 								AnswerItemsHTML +=  "<div class=\"Div_AnswerItem\">" +
-													"<img src=\"media/card/" + data[i].card + ".png\" />" +
+													"<img src=\"media/card/" + result[i].cardid + ".png\" />" +
 													"<div class=\"Div_VotePeople\">";
-								if (i == 0) {
+
+								if (result[i].isanswer == true) {
 									AnswerItemsHTML += "<span>Answer!!!</span>";
 								}
-								if (typeof data[i].people != 'undefined') {
-									for (var j in data[i].people) {
-										AnswerItemsHTML += "<span>" + ArrayText_SeatCode[data[i].people[j]] + "</span>";
+
+								if (result[i].chooseuser.length > 0) {
+									for (var j in result[i].chooseuser) {
+										AnswerItemsHTML += "<span>" + result[i].chooseuser[j] + "</span>";
 									}
 								}
 								AnswerItemsHTML +=  "</div></div>";
@@ -715,7 +717,7 @@ $(function () {
 				var bool_isAllPlayerChoosed = true;
 
 				$.each(data, function(idx, dat){
-					bool_isAllPlayerChoosed = (bool_isAllPlayerChoosed && dat.isReady);
+					bool_isAllPlayerChoosed = (bool_isAllPlayerChoosed && dat.isready);
 				});
 
 				if (bool_isAllPlayerChoosed == true) {
@@ -723,7 +725,6 @@ $(function () {
 				} else {
 					setTimeout(waitAllUserChooseCard, Int_RefreshTime);
 				}
-
 		}) ;
 	}
 
@@ -738,9 +739,9 @@ $(function () {
 						return false;
 					}
 
-					bool_canChoose = (bool_canChoose && dat.isReady);
+					bool_canChoose = (bool_canChoose && dat.isready);
 				});
-
+				
 				if (bool_canChoose == true){
 					startChooseCard();
 				} else {
@@ -751,6 +752,7 @@ $(function () {
 
 	function lookChooseCard () {
 		UI_LightBox.fadeOut(Int_LightBoxProcessTime);
+		
 		UI_ShowCardDIV
 			.find(".showCard")
 			.removeClass("isCanChoose")
@@ -762,9 +764,14 @@ $(function () {
 	}
 
 	function startChooseCard () {
-		UI_ShowCardDIV.find(".showCard").addClass("isCanChoose");
-		UI_ShowCardDIV.find("img").removeClass("isLock");
-		UI_ShowCardDIV.on("click", ".showCard", showLightBox);
+		UI_ShowCardDIV
+			.find(".showCard")
+			.addClass("isCanChoose")
+			.end()
+			.find("img")
+			.removeClass("isLock")
+			.end()
+			.on("click", ".showCard", showLightBox);
 	}
 
 	function lockVoteCard() {
@@ -772,10 +779,14 @@ $(function () {
 	}
 
 	function waitUserVoteCard () {
-		API.card.vote.status.get({Int_RoomID : Int_RoomID})
+		API.card.vote.get({Int_RoomID : Int_RoomID})
 			.done(function (data) {
+				var bool_canShowAnswer = true;
+				$.each(data, function(idx, dat){
+					bool_canShowAnswer = (bool_canShowAnswer && dat.isready);
+				});
 
-				if (data.success == 1) {
+				if (bool_canShowAnswer == true) {
 					$(document).trigger('_SHOW_ANSWER');
 				} else {
 					setTimeout(waitUserVoteCard, Int_RefreshTime);
@@ -783,11 +794,12 @@ $(function () {
 			})
 	}
 
+	// vote
 	function startVote() {
 		UI_ShowVoteCardDIV.find(".voteCard img").addClass("isCanChoose");
 		UI_Stage.on("click", "img", chooseVoteCard);
 	}
-
+	
 	function chooseVoteCard(e) {
 		var choosedCard = $(e.target);
 		choosedCard.addClass("isChoose")
@@ -796,7 +808,7 @@ $(function () {
 		lockOtherVoteCard();
 		$("body").on("click", cancelOtherLockVoteCard);
 	}
-
+	
 	function lockOtherVoteCard () {
 		UI_LightBox.fadeIn(Int_AnimationTime);
 		UI_LightBox.find("#Div_LightBoxContent").css("display", "none");
@@ -807,10 +819,18 @@ $(function () {
 		if ($(e.target).attr("class") == "isChoose" || $(e.target).attr("class") == "isShowButton") {
 			return;
 		}
+
 		$("body").off("click", cancelOtherLockVoteCard);
+
 		startVote();
 		UI_LightBox.fadeOut(Int_AnimationTime);
-		UI_ShowVoteCardDIV.find(".voteCard img").removeClass("isLock").removeClass("isChoose");
-		$(".isShowButton").css("display", "none").removeClass(".isShowButton");
+
+		UI_ShowVoteCardDIV
+			.find(".voteCard img")
+			.removeClass("isLock isChoose") ;
+
+		$(".isShowButton")
+			.hide()
+			.removeClass(".isShowButton");
 	}
 });

@@ -20,7 +20,7 @@ var Event_RefreshWaitGameStart;
 var Int_AnimationTime = 300;	// AnimationTime
 var Int_RefreshTime = 1000;		// Refresh Freq
 var Int_RoomID;					// RoomID
-var Int_LeastPlayerNum = 2;	// 程ぶ计砞﹚
+var Int_LeastPlayerNum = 3;	// 程ぶ计砞﹚
 var Int_PlayerCount;				//
 var Int_ShowGameOrderIndex;
 var Int_ShowGameOrderTime = 500;

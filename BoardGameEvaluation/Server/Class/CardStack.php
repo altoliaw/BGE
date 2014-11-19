@@ -36,6 +36,15 @@ class CardStack{
 		return $this->intarr_PokerDiscardStack;
 	}
 	
+	function GetPlayCardsStack(){
+		return $this->intarr_PlayCardsStack;
+	}
+	
+	function GetShufflePlayCardsStack(){
+		shuffle($this->intarr_PlayCardsStack);
+		return $this->intarr_PlayCardsStack;
+	}
+	
 	function DrawACard($int_PlayerCount){
 		$intarr_CardGroup=array();
 		if(count($this->intarr_PokerStack) <= $int_PlayerCount){
@@ -53,22 +62,24 @@ class CardStack{
 		$this->CollectDiscardCard($intarr_Card);
 	}
 	
-	function CheckCardReady($strarr_Guid){
-		$bool_IsPlayACard									=true;
+	function CheckPlayACardReadyStatusForAllPlayers($strarr_Guid){
+		$boolarr_IsPlayACard							=array();
+		$boolarr_IsPlayACard							=array_pad($boolarr_IsPlayACard,count($strarr_Guid),false);	
 		foreach($strarr_Guid as $key =>$value){
-			$bool_EachElementStatus					=false;
 			foreach($this->intarr_PlayCardsStack as $key2 =>$value2){
 				if($value2["Guid"] ==$value){
-					$bool_EachElementStatus			=true;
+					$boolarr_IsPlayACard[$key]		=true;
 				}				
 			}
-			$bool_IsPlayACard								=$bool_IsPlayACard & $bool_EachElementStatus;
+			if($value	== -1){//No player in the position
+				$boolarr_IsPlayACard[$key]			=true;
+			}
 		}
-		return $bool_IsPlayACard;
+		return $boolarr_IsPlayACard;
 	}
 	
 	function PlayACardsIntoPlayCardsStack($int_CardId,$str_UserGuid,$bool_IsPlayForTheTeller){
-		$this->intarr_PlayCardsStack[]				=array("CardId"=>$int_CardId,"Guid"=>$str_UserGuid,"IsAnswer"=>$bool_IsPlayForTheTeller,"VotedMan"=>array());
+		$this->intarr_PlayCardsStack[]					=array("CardId"=>$int_CardId,"Guid"=>$str_UserGuid,"IsAnswer"=>$bool_IsPlayForTheTeller,"VotedMan"=>array());
 	}
 	
 	function RecyclePlayCards(){
@@ -78,6 +89,39 @@ class CardStack{
 		}
 		$this->CollectDiscardCard($intarr_DiscardCard);
 		$this->intarr_PlayCardsStack					=array();
+	}
+
+	function SetVoteCard($int_CardId,$str_VoteMan){
+		$bool_IsSuccess										=false;
+		$bool_IsPlayerVoted									=false;
+		foreach($this->intarr_PlayCardsStack as $key => $value){
+			if(in_array($str_VoteMan,$value["VotedMan"],true)==true){
+				$bool_IsPlayerVoted							=true;
+			}
+		}
+		
+		foreach($this->intarr_PlayCardsStack as $key => &$value){
+			if($value["CardId"]==$int_CardId){
+				if(in_array($str_VoteMan,$value["VotedMan"],true)==false && $bool_IsPlayerVoted ==false){
+					$value["VotedMan"][]					=$str_VoteMan;
+					$bool_IsSuccess							=true;
+				}
+			}
+		}
+		return $bool_IsSuccess;
+	}
+	
+	function CheckPlayerVotedStatus($strarr_Guid){
+		$boolarr_IsPlayerVoted							=array();
+		$boolarr_IsPlayerVoted							=array_pad($boolarr_IsPlayerVoted,count($strarr_Guid),false);
+		foreach($strarr_Guid as $key =>$value){
+			foreach($this->intarr_PlayCardsStack as $key2 => $value2){
+				if(in_array($value,$value2["VotedMan"],true)==true){
+					$boolarr_IsPlayerVoted[$key]		=true;
+				}
+			}
+		}
+		return $boolarr_IsPlayerVoted;
 	}
 }
 ?>

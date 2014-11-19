@@ -62,6 +62,7 @@ class Players{
 	
 	function InsertACard($int_CardNumber){
 		$this->intarr_PokeStack[]						=$int_CardNumber;
+		return true;
 	}
 	
 	function CheckIsFullCard($int_MaximumCardNumber){
@@ -71,6 +72,31 @@ class Players{
 		}
 		return $bool_IsFullCard;
 	}
-
+	
+	function CheckTheCardInUser($int_CardNumber){
+		$bool_IsSuccess										=false;
+		foreach($this->intarr_PokeStack as $key=>$value){
+			if($value ==$int_CardNumber){
+				$bool_IsSuccess								=true;
+				break;
+			}
+		}		
+		return $bool_IsSuccess;
+	}
+	
+	function RemoveACard($int_CardNumber){
+		$intarr_PokeStack									=array();
+		$bool_IsSuccess										=false;
+		foreach($this->intarr_PokeStack as $key=>$value){
+			if($value ==$int_CardNumber){
+				$bool_IsSuccess								=true;
+			}
+			else{
+				$intarr_PokeStack[]						=$value;
+			}
+		}
+		$this->intarr_PokeStack 						=$intarr_PokeStack;
+		return $bool_IsSuccess;
+	}
 }
 ?>

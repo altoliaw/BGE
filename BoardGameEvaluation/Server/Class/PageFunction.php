@@ -53,7 +53,32 @@ class PageFunction{
 							$strarr_Output							=$obj_TablesInformation->GetAPlayerCardStackInformationForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"]);
 						}
 					break;
-								
+					case "choosecard":
+						if($objarr_GET["type"]=="read" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET)){
+							$strarr_Output							=$obj_TablesInformation->GetUserCanPlayForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"]);
+						}
+						else if($objarr_GET["type"]=="write" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET) && array_key_exists("cardid",$objarr_GET)){
+							$strarr_Output							=$obj_TablesInformation->SetPlayACardForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"],$objarr_GET["cardid"]);
+						}
+					break;
+					case "cardstacktable":
+						if($objarr_GET["type"]=="read" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET)){
+								$strarr_Output							=$obj_TablesInformation->GetPlayCardCandiateForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"]);
+						}
+					break;	
+					case "votestatus":
+						if($objarr_GET["type"]=="read" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET)){
+								$strarr_Output							=$obj_TablesInformation->GetAllPlayerVoteStatusForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"]);
+						}
+						else if($objarr_GET["type"]=="write" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET) && array_key_exists("cardid",$objarr_GET)){
+								$strarr_Output							=$obj_TablesInformation->SetVoteCardForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"],$objarr_GET["cardid"]);
+						}
+					break;	
+					case "gameresult":
+						if($objarr_GET["type"]=="read" && array_key_exists("roomid",$objarr_GET) && array_key_exists("guid",$objarr_GET)){
+								$strarr_Output							=$obj_TablesInformation->GetResultsForJsonArray($objarr_GET["roomid"],$objarr_GET["guid"]);
+						}
+					break;									
 					default:
 						$strarr_Output=array("error"=>"targetnotfound");
 					break;				

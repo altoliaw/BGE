@@ -11,11 +11,13 @@ class TablesInformation{
 		private $objarr_CardOnTheTable;
 		private $int_MaximumNumberPokerForEachMan;
 		private $intarr_PlayCount;
+		private $int_Round;
 		
-		function TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber,$int_MaximumNumberPokerForEachMan,$int_TotalNumberOfPoker){
+		function TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber,$int_MaximumNumberPokerForEachMan,$int_TotalNumberOfPoker,$int_Round){
 			$this->objarr_TablesInformation		=array();
 			$this->int_MaximunManInTable		=$int_MaximunManInTable;
 			$this->int_MaximunTableNumber	=$int_MaximunTableNumber;
+			$this->int_Round								=$int_Round;
 			$this->int_MaximumNumberPokerForEachMan	=$int_MaximumNumberPokerForEachMan;
 			$this->intarr_PlayCount						=array();
 			$this->intarr_PlayCount						=array_pad($this->intarr_PlayCount,$this->int_MaximunTableNumber,0);
@@ -204,6 +206,18 @@ class TablesInformation{
 			return $intarr_SeatGuid;
 		}
 		
+		function GetActualPlayerNumber($int_TableId){
+			$strarr_SeatOrder								=array();
+			$strarr_SeatOrder								=$this->GetSeatOrder($int_TableId);
+			$int_Count											=0;
+			foreach($strarr_SeatOrder as $key =>$value){
+				if($value !=-1){
+					$int_Count++;
+				}
+			}
+			return $int_Count;
+		}
+		
 		function GetSeatOrderForJsonArray($int_TableId,$str_Guid){
 			$strarr_SeatGuid								=array();
 			$intarr_SeatGuid								=array();
@@ -217,6 +231,9 @@ class TablesInformation{
 		function SetPlayerStatus($int_TableId,$str_Guid){
 			$bool_IsSuccess									=false;
 			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)==true){
+				//Set counter round =0
+				$intarr_PlayCount[($int_TableId-1)]=0;
+				
 				$objarr_PlayerSet							=&$this->objarr_TablesInformation[($int_TableId-1)] ;
 				foreach($objarr_PlayerSet as $key => &$value){ // $value is the Players
 					if($value->GetPlayerGuid()==$str_Guid){
@@ -231,7 +248,7 @@ class TablesInformation{
 		
 		function SetPlayerStatusForJsonArray($int_TableId,$str_Guid){
 			$bool_IsSuccess									=false;
-			$bool_IsSuccess										=$this->SetPlayerStatus($int_TableId,$str_Guid);
+			$bool_IsSuccess									=$this->SetPlayerStatus($int_TableId,$str_Guid);
 			return array("success"=>((int)$bool_IsSuccess));			
 		}
 
@@ -287,6 +304,11 @@ class TablesInformation{
 			if(array_key_exists(($int_TableId-1),$this->intarr_PlayCount)==true){
 				$this->intarr_PlayCount[($int_TableId-1)]=($this->intarr_PlayCount[($int_TableId-1)]++);
 			}
+			$obj_CardStack									=&$this->objarr_CardOnTheTable[($int_TableId-1)];
+			
+			//Recycle the cards on the table
+			$obj_CardStack->RecyclePlayCards();
+			
 			//Draw a card/ or cards
 			$strarr_PlayerSet								=array();
 			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)==true){
@@ -294,11 +316,10 @@ class TablesInformation{
 			}
 			$boolarr_IsFullCard							=array();
 			$boolarr_IsFullCard							=array_pad($boolarr_IsFullCard,count($strarr_PlayerSet),false);
-			do{
-				$obj_CardStack								=&$this->objarr_CardOnTheTable[($int_TableId-1)];
+			do{				
 				$intarr_Card									=array();									
 				$intarr_Card									=$obj_CardStack->DrawACard(count($strarr_PlayerSet));
-				var_dump($intarr_Card);
+//				var_dump($obj_CardStack->GetPokerStack());				
 				foreach($intarr_Card as $key =>$value){
 					if(array_key_exists($key,$strarr_PlayerSet)){
 						if($boolarr_IsFullCard[$key]==false){//Draw a card
@@ -312,15 +333,15 @@ class TablesInformation{
 							}
 						}
 						else{// If full, send the card back to the discard array
-							var_dump("yes");
 							$obj_CardStack->CollectDiscardCard(array($value));
 						}
 					}
 					else{// The user is not existing, send the card back to the stack
-						var_dump("yes2");
 						$obj_CardStack->CollectDiscardCard(array($value));
 					}
 				}
+//				var_dump($obj_CardStack->GetDiscardPokerStack());
+//				var_dump($obj_CardStack->GetPlayCardsStack());
 				$bool_IsFullCardForALLMan			=true;
 				foreach($boolarr_IsFullCard as  $key => $value){
 					$bool_IsFullCardForALLMan		=($bool_IsFullCardForALLMan & $value);
@@ -353,5 +374,177 @@ class TablesInformation{
 			$strarr_Output["cards"]						=$intarr_PokerCards;
 			return $strarr_Output;
 		}
+
+		function GetUserCanPlay($int_TableId, $str_Guid){
+			$obj_CardStack									=array();			
+			//Fetch the user : is teller or players
+			$intarr_UserGuid								=array();
+			$intarr_UserGuid								=$this->GetSeatOrder($int_TableId);
+			$boolarr_PlayACardStatus					=array();
+			$boolarr_PlayACardStatus					=array_pad($boolarr_PlayACardStatus,count($intarr_UserGuid),false);	
+			if(array_key_exists(($int_TableId-1),$this->objarr_CardOnTheTable)){
+				$obj_CardStack								=$this->objarr_CardOnTheTable[($int_TableId-1)];		
+				$boolarr_PlayACardStatus				=$obj_CardStack->CheckPlayACardReadyStatusForAllPlayers($intarr_UserGuid);
+			}
+			return  array("Guid"=>$intarr_UserGuid,"PlayACardStatus"=>$boolarr_PlayACardStatus);
+		}
+		
+		function GetUserCanPlayForJsonArray($int_TableId, $str_Guid){
+			$strarr_CallBackResult						=array();
+			$objarr_PlayACardStatusSet				=$this->GetUserCanPlay($int_TableId, $str_Guid);
+			$strarr_PlayACardStatusGuid			=$objarr_PlayACardStatusSet["Guid"];
+			$boolarr_PlayACardStatus					=$objarr_PlayACardStatusSet["PlayACardStatus"];
+			
+			foreach($strarr_PlayACardStatusGuid as $key =>$value){
+				$strarr_CallBackResult[]					=array("order"=>chr((65+$key)),"isself"=>($value==$str_Guid?1:0),"isempty"=>($value==-1?1:0),"isready"=>((int)$boolarr_PlayACardStatus[$key]));
+			}
+			return $strarr_CallBackResult;
+		}
+
+		function SetPlayACard($int_TableId, $str_Guid,$int_CardId){
+			$bool_IsSuccess									=false;
+			$obj_CardStack									=array();
+			$objarr_PlayerSet								=array();
+			$strarr_SeatOrder								=array();
+			
+			if(array_key_exists(($int_TableId-1),$this->objarr_CardOnTheTable) && array_key_exists(($int_TableId-1),$this->objarr_TablesInformation)){
+				//Get Players order
+				$strarr_SeatOrder							=$this->GetSeatOrder($int_TableId);
+				if(count($strarr_SeatOrder)>0){
+					//Check the user and the card
+					$objarr_PlayerSet							=&$this->objarr_TablesInformation[($int_TableId-1)];
+					foreach($objarr_PlayerSet as $key=>&$value){
+						if($value->GetPlayerGuid() ==$str_Guid){
+							if($value->CheckTheCardInUser($int_CardId)==true){
+								$value->RemoveACard($int_CardId);
+								$obj_CardStack					=&$this->objarr_CardOnTheTable[($int_TableId-1)];
+								$obj_CardStack->PlayACardsIntoPlayCardsStack($int_CardId,$str_Guid,($strarr_SeatOrder[0]==$str_Guid?true:false));
+								$bool_IsSuccess					=true;
+								break;
+							}
+						}
+					}
+				}			
+			}
+			return $bool_IsSuccess;		
+		}
+		
+		function SetPlayACardForJsonArray($int_TableId,$str_Guid,$int_CardId){			
+			$bool_IsSuccess									=false;
+			$bool_IsSuccess									=$this->SetPlayACard($int_TableId, $str_Guid,$int_CardId);
+			return array("success"=>$bool_IsSuccess);
+		}
+		
+		function GetPlayCardCandiate($int_TableId,$str_Guid){
+			$obarr_PlayCardCandidate				=array();
+			$obj_CardStack									=array();
+			if(array_key_exists(($int_TableId-1),$this->objarr_CardOnTheTable)==true){
+				$obj_CardStack								=&$this->objarr_CardOnTheTable[($int_TableId-1)];
+				$obarr_PlayCardCandidate			=$obj_CardStack->GetShufflePlayCardsStack();
+			}
+			return $obarr_PlayCardCandidate;
+		}
+		
+		function GetPlayCardCandiateForJsonArray($int_TableId,$str_Guid){
+			$strarr_PlayCardCandidate				=array();
+			$obarr_PlayCardCandidate				=array();
+			$obarr_PlayCardCandidate				=$this->GetPlayCardCandiate($int_TableId,$str_Guid);
+			foreach($obarr_PlayCardCandidate as $key =>$value){
+				$strarr_PlayCardCandidate[]			=$value["CardId"];
+			}
+			
+			return array("cards"=>$strarr_PlayCardCandidate);
+		}
+		
+		function SetVoteCard($int_TableId,$str_Guid,$int_CardId){
+			$bool_IsSuccess									=false;
+			$obj_CardStack									=array();
+			if(array_key_exists(($int_TableId-1),$this->objarr_CardOnTheTable)==true){
+				$obj_CardStack								=&$this->objarr_CardOnTheTable[($int_TableId-1)];
+				$bool_IsSuccess								=$obj_CardStack->SetVoteCard($int_CardId,$str_Guid);
+			}
+			return $bool_IsSuccess;
+		}
+		
+		function SetVoteCardForJsonArray($int_TableId,$str_Guid,$int_CardId){
+			$bool_IsSuccess									=false;
+			$bool_IsSuccess									=$this->SetVoteCard($int_TableId,$str_Guid,$int_CardId);
+			return array("success"=>(int)$bool_IsSuccess);
+		}
+		
+		function GetAllPlayerVoteStatus($int_TableId,$str_Guid){
+			$boolarr_IsVoted								=array();
+			$intarr_SeatOrder								=array();
+			$obj_CardStack									="";
+			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation) ==true && array_key_exists(($int_TableId-1),$this->objarr_CardOnTheTable)==true){
+				$intarr_SeatOrder							=$this->GetSeatOrder($int_TableId);
+				$boolarr_IsVoted							=array_pad($boolarr_IsVoted,count($intarr_SeatOrder),false);
+				$obj_CardStack								=$this->objarr_CardOnTheTable[($int_TableId-1)];
+				$boolarr_IsVoted							=$obj_CardStack->CheckPlayerVotedStatus($intarr_SeatOrder);
+				foreach($intarr_SeatOrder as $key =>$value){
+					if($key == 0){
+						$boolarr_IsVoted[$key]			=true;
+						continue;
+					}
+					if($value ==-1){
+						$boolarr_IsVoted[$key]			=true;
+					}					
+				}				
+			}			
+			return array("Guid"=>$intarr_SeatOrder,"VotedStatus"=>$boolarr_IsVoted);
+		}
+		
+		function GetAllPlayerVoteStatusForJsonArray($int_TableId,$str_Guid){
+			$strarr_Output									=array();
+			$objarr_AllPlayerVoteStatus				=array();
+			$objarr_AllPlayerVoteStatus				=$this->GetAllPlayerVoteStatus($int_TableId,$str_Guid);
+			$obj_AllPlayerVoteGuid						=$objarr_AllPlayerVoteStatus["Guid"];
+			$obj_AllPlayerVoteStatus					=$objarr_AllPlayerVoteStatus["VotedStatus"];
+			foreach($obj_AllPlayerVoteGuid as $key =>$value){
+				$strarr_Output[]								=array("order"=>chr(($key)+65),"isself"=>($value==$str_Guid?1:0),"isempty"=>($value==-1?1:0),"isready"=>(int)$obj_AllPlayerVoteStatus[$key]);
+			}
+			return $strarr_Output;
+		}
+		
+		function GetResults($int_TableId,$str_Guid){
+			$intarr_SeatOrder								=array();
+			$obj_CardStack									="";
+			if(array_key_exists(($int_TableId-1),$this->objarr_TablesInformation) ==true && array_key_exists(($int_TableId-1),$this->objarr_CardOnTheTable)==true){
+				$intarr_SeatOrder							=$this->GetSeatOrder($int_TableId);
+				$obj_CardStack								=$this->objarr_CardOnTheTable[($int_TableId-1)];
+			}
+			return array("Guid"=>$intarr_SeatOrder,"PlayCardStack"=>$obj_CardStack->GetPlayCardsStack());
+		}
+		
+		function GetResultsForJsonArray($int_TableId,$str_Guid){
+			$strarr_Result										=array();
+			$strarr_Result										=$this->GetResults($int_TableId,$str_Guid);
+			$obj_CardStack									=$strarr_Result["PlayCardStack"];
+			$intarr_SeatOrder								=$strarr_Result["Guid"];
+			$strarr_ShowResult							=array();
+			foreach($obj_CardStack as $key =>$value){
+				//Play cards stack . The results of the Stack is array(array("CardId"=>$int_CardId,"Guid"=>$str_UserGuid,"IsAnswer"=>$bool_IsPlayForTheTeller,"VotedMan"=>$strarr_VotedPeople));
+				$str_arrVotedManchar					=array();
+				foreach($value["VotedMan"] as $key2 =>$value2){
+					$str_GuidIndex							=array_search($value2,$intarr_SeatOrder);
+					if($str_GuidIndex !=null){
+						$str_arrVotedManchar[]			=chr(($str_GuidIndex+65));
+					}					
+				}
+				//Assemble each item
+				$strarr_ShowResult[]						=array("cardid"=>$value["CardId"],"isanswer"=>((int)$value["IsAnswer"]),"chooseuser"=>$str_arrVotedManchar);
+			}
+			$bool_IsContinue								=false;
+			$int_Round											=0;
+			if(array_key_exists(($int_TableId-1),$this->intarr_PlayCount)==true){
+				$int_Round										=$this->intarr_PlayCount[($int_TableId-1)]+1;
+				if($this->intarr_PlayCount[($int_TableId-1)]< ($this->int_Round * $this->GetActualPlayerNumber($int_TableId))){
+					$bool_IsContinue						=true;
+					$this->intarr_PlayCount[($int_TableId-1)]++;		
+				}
+			}
+			return array("iscontinue"=>(int)$bool_IsContinue,"round"=>$int_Round,"result"=>$strarr_ShowResult);
+		}
+		
 }
 ?>

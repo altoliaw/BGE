@@ -17,6 +17,7 @@ $int_MaximunManInTable							=8;
 $int_MaximunTableNumber							=9;
 $int_MaximumNumberPokerForEachMan	=4;
 $int_TotalNumberOfPoker							=40;
+$int_Round														=2;
 
 //Start
 echo "Start for resident of PHP\n" ;
@@ -24,7 +25,7 @@ echo "Start for resident of PHP\n" ;
 //New page function object
 $obj_PageFunction										=new  PageFunction();
 //New a tableinformation object
-$obj_TablesInformation								=new TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber,$int_MaximumNumberPokerForEachMan,$int_TotalNumberOfPoker);
+$obj_TablesInformation								=new TablesInformation($int_MaximunManInTable,$int_MaximunTableNumber,$int_MaximumNumberPokerForEachMan,$int_TotalNumberOfPoker,$int_Round);
 //Test start
 //$obj_TablesInformation->SetTablesInformation(new Players("123451",1,0));
 //$obj_TablesInformation->SetTablesInformation(new Players("123452",1,-1));
@@ -65,7 +66,7 @@ try{
 		
 		// Write client input
 		$str_Output												=serialize($strarr_Output);
-		var_dump($obj_TablesInformation->GetSeatOrder(7));
+		//var_dump($obj_TablesInformation->GetSeatOrder(7));
 		$obj_SocketServer->Write($str_Output,"s");	
 	}
 }

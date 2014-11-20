@@ -384,6 +384,10 @@ $(function () {
 		// 取消卡片-題目
 		.on("click", "#Btn_CancelChooseCard", function(){
 			UI_LightBox.fadeOut(Int_LightBoxProcessTime);
+		})
+		// 再玩一局
+		.on('click', 'button#PlayAgain', function(){
+			$(document).trigger('_SHOW_CARD') ;
 		});
 
 	$(document)

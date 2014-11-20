@@ -1,5 +1,3 @@
-// 要有說書人才能 ready
-
 var API = {
 	GUID: {
 		get: function(){
@@ -186,32 +184,21 @@ var API = {
 
 $(function () {
 
-	var setGUID =  (function () {
-		if (localStorage.GUID == null) {
-			API.GUID.get()
-				.done(function (data) {
-					Text_GUID = data.Guid;
-					localStorage.setItem("GUID", Text_GUID);
-				});
-		} else {
-			Text_GUID = localStorage.GUID;
-		}
-	})() ;
-
 	UI_Stage = $("#Div_Stage") ;
+
+//---- Stage.0 大廳前 ----
 	UI_Stage
 		// Stage.0 進入大廳
 		.on("click", "#Btn_Start", function(){
 			clearStage()
 				.done(function(){
-
 					// 大廳版型
 					var _makeHall = function(){
 						var tables = ''
 						for (var i = 1 ; i <= 9 ; i++)
 			　			{
 			　				tables += '<td data-id="' + i + '">第&nbsp;' + i + '&nbsp;桌</td>' ;
-			　				if (i % 3 == 0  && i != 9) tables += '</tr><tr>' ;
+							tables += (i % 3 == 0  && i != 9) ? '</tr><tr>' : '';
 			　			}
 
 						var tpl = '<div id="Div_ChooseRoom">' +
@@ -222,62 +209,87 @@ $(function () {
 					　　　　　　	'</table>' +
 					　　　　　　	'<div id="Div_ChooseRoomBtn">' +
 					　　　　　　		'<button id="Btn_ChooseRoomByTeller" data-identity="teller" class="ui-btn ui-btn-inline">說書人</button>' +
-					　　　　　　		'<button id="Btn_ChooseRoomByUser" data-identity="user" class="ui-btn ui-btn-inline">一般玩家</button>' +
+					　　　　　　		'<button id="Btn_ChooseRoomByUser" data-identity="player" class="ui-btn ui-btn-inline">一般玩家</button>' +
 					　　　　　　	'</div>' +
 					　　　　　　'</div>' ;
 
 						UI_Stage.html(tpl);
 					}();
 
-					UI_ChooseRoom = $("#Div_ChooseRoom");
-
+					
+					Event_RefreshChooseRoomStatus = true ;
+					
 					// 持續檢查 房間狀態, 大廳UI
 					var getChooseRoomStatus = function () {
 						API.ChooseRoomStatus.get()
 							.done(function (data) {
 								$.each(data, function(idx, dat){
 									if (dat.isAvailable == false || dat.isReady == true){
-										UI_ChooseRoom.find("table td").eq((dat.Roomid - 1))
-										.removeClass("roomIsChoose")
-										.addClass("roomIsFull");
+										$("#Div_ChooseRoom")
+											.find("table td")
+											.eq((dat.Roomid - 1))
+											.removeClass("roomIsChoose")
+											.addClass("roomIsFull");
 									}
 								}) ;
 
-								Event_RefreshChooseRoomStatus = setTimeout(getChooseRoomStatus, Int_RefreshTime) ;
+								if (Event_RefreshChooseRoomStatus == true){
+									setTimeout(getChooseRoomStatus, Int_RefreshTime) ;
+								}
 							});
 					};
 
 					getChooseRoomStatus();
-
 					startStage();
 				});
 		})
+		// Stage.0 Set Guid
+		.on('_SET_GUID', function () {
+			if (localStorage.GUID == null) {
+				API.GUID.get()
+					.done(function (data) {
+						Text_GUID = data.Guid;
+						localStorage.setItem("GUID", Text_GUID);
+					});
+			} else {
+				Text_GUID = localStorage.GUID;
+			}
+		})
+		.trigger('_SET_GUID') ;
+
+//---- Stage.1 大廳內 ----	
+	UI_Stage
 		// Stage.1 選擇房間
 		.on("click", "#Div_ChooseRoom td", function(){
 			if ($(this).attr("class") != "roomIsFull") {
-				$(this).parents().find("td").removeClass("roomIsChoose");
-				$(this).addClass("roomIsChoose");
+				$(this)
+					.parents()
+					.find("td")
+					.removeClass("roomIsChoose")
+					.end()
+					.end()
+					.addClass("roomIsChoose");
 			}
 		})
-		// Stage.1 選擇說書人或是一般
+		// Stage.1 選擇身份 (說書人,一般)
 		.on("click", "#Btn_ChooseRoomByTeller, #Btn_ChooseRoomByUser", function(e){
 			var _this = $(this);
 			var UI_ChooseRoom = UI_Stage.find(".roomIsChoose");
-			var Bool_IsChoose = UI_Stage.find(".roomIsChoose").length == 1;
-			if (Bool_IsChoose) {
+
+			// 檢查是否有選房間
+			if (UI_ChooseRoom.size() == 1) {
 				API.ChooseRoomStatus.get({callback:'jsonp_checkStatus'})
 					.done(function(data){
 
 						Int_RoomID = UI_ChooseRoom.data("id") ;
-						Bool_IsTellerProcess = _this.attr("id").indexOf('Teller') != -1;
 
 						$.each(data, function(idx, dat){
 							if (dat.Roomid == Int_RoomID && dat.isAvailable == true){
 								if (dat.isAvailable == true){
-									clearTimeout(Event_RefreshChooseRoomStatus);
+									Event_RefreshChooseRoomStatus = false;
 
 									// 進入房間
-									$(document).trigger('_ENTER_ROOM', {role: (Bool_IsTellerProcess ? 'teller' : 'player'), Int_RoomID: Int_RoomID}) ;
+									UI_Stage.trigger('_ENTER_ROOM', {role: _this.data("identity"), Int_RoomID: Int_RoomID}) ;
 								}
 								else{
 									alert("第" + Int_RoomID + "桌已滿！");
@@ -288,15 +300,107 @@ $(function () {
 			} else {
 				alert("請先選擇");
 			}
+		});
+
+//---- Stage.2 房間內 ----	
+	UI_Stage
+		// Stage.2 進入房間
+		.on('_ENTER_ROOM', function(e, opt){
+			API.room.enter(opt)
+				.done(function(dat){
+					if (dat.success == true){
+						API.room.status.get({Int_RoomID: Int_RoomID, callback: 'jsonp_userorder1'})
+							.done(function (data){
+								Bool_IsTeller = false ;
+								clearStage()
+									.done(function () {
+
+										// 房間版型
+										var _makeTable = (function(){
+											var tables = ''
+											$.each(data, function(idx, dat){
+												tables += '<td data-id="' + idx + '" class="' + (dat.isself ? 'isYou' : '' ) + (dat.isempty ? ' isNotSit' : ' isSit' ) + '" >' + dat.order + '</td>' ;
+												tables += ((idx+1) % 4 == 0  && idx != 7) ? '</tr><tr>' : '' ;
+
+												if (idx == 0 && dat.isself){
+													Bool_IsTeller = true
+												}
+										　	}) ;
+
+											var tpl = 	'<div id="Div_Room">' +
+														'<table>' +
+															'<tr>' +
+															tables +
+															'</tr>' +
+														'</table>' +
+															'<div id="Div_RoomBtn">' +
+																'<button id="Btn_ReadyStart" class="ui-btn ui-btn-inline">準備</button>' +
+																'<button id="Btn_Exit" class="ui-btn ui-btn-inline">離開</button>' +
+															'</div>' +
+														'</div>' ;
+
+											UI_Stage.html(tpl);
+											UI_ReadyBtn = $("#Div_Room #Btn_ReadyStart");
+											if (Bool_IsTeller) {
+												UI_ReadyBtn
+													.text("開始")
+													.attr("disabled", true);
+											}
+										})();
+
+										Event_RefreshRoomStatus = true;
+										
+										// 持續檢查 房間狀態, 房間UI
+										var getRoomStatus = function () {
+											API.room.status.get({Int_RoomID: Int_RoomID, callback: 'jsonp_roomuicheck'})
+												.done(function (data) {
+													var bool_canStart = true ;
+
+													$.each(data, function(idx, dat){
+														$("#Div_Room table td").eq(idx)
+															.removeClass('isNotSit isSit isReady')
+															.addClass((dat.isempty == true) ? 'isNotSit' : 'isSit')
+															.toggleClass('isReady', (dat.isready == true && dat.isempty == false)) ;
+
+														bool_canStart = (idx > 0) ? (bool_canStart && dat.isready) : bool_canStart ;
+													});
+													
+													// 說書人檢查遊戲開始
+													if (Bool_IsTeller) {
+														// 人員準備好 且 房內大於等於最低人數
+														var isOK = bool_canStart && ($('td.isSit').length >= Int_LeastPlayerNum) ;
+														
+														UI_ReadyBtn.prop("disabled", !isOK) ;
+													}
+													
+													bool_IsTellerInRoom =  (data[0].isempty == 0) ? true : false;
+
+													if(Event_RefreshRoomStatus == true){
+														setTimeout(getRoomStatus, Int_RefreshTime);
+													}
+												}) ;
+										}
+
+										getRoomStatus()
+										startStage();
+									});
+							}) ;
+					}
+				}) ;
 		})
-		// Stage.2 準備開始, 說書人一般共用
+		// Stage.2 準備 or 開始 (說書人,一般)
 		.on("click", "#Btn_ReadyStart", function(e){
+			if (bool_IsTellerInRoom == false){
+				alert("說書人不在房內，請稍待");
+				return;
+			}
+
 			if (Bool_IsTeller){
 				API.game.start({Int_RoomID: Int_RoomID})
 					.done(function (data){
-						clearTimeout(Event_RefreshRoomStatus);
-						$(document).trigger('_SHOW_GAME_ORDER');
-					}) ;
+						Event_RefreshRoomStatus = false;
+						UI_Stage.trigger('_SHOW_GAME_ORDER');
+					});
 			}
 			else{
 				API.game.ready({ Int_RoomID: Int_RoomID})
@@ -304,6 +408,8 @@ $(function () {
 						// 按鈕反灰, 檢查是否說書人按下開始
 						UI_ReadyBtn.prop("disabled", true);
 
+						Event_RefreshWaitGameStart = true;
+						
 						// 持續檢查 遊戲是否可開始
 						var getGameStatus = function (){
 							API.room.status.get({Int_RoomID: Int_RoomID})
@@ -316,12 +422,14 @@ $(function () {
 									});
 
 									if (bool_canStart){
-										clearTimeout(Event_RefreshRoomStatus);
-										clearTimeout(Event_RefreshWaitGameStart);
-										$(document).trigger('_SHOW_GAME_ORDER');
+										Event_RefreshRoomStatus = false;
+										Event_RefreshWaitGameStart = false;
+										UI_Stage.trigger('_SHOW_GAME_ORDER');
 									}
 									else{
-										Event_RefreshWaitGameStart = setTimeout(getGameStatus, Int_RefreshTime);
+										if (Event_RefreshWaitGameStart == true){
+											setTimeout(getGameStatus, Int_RefreshTime);
+										}
 									}
 								});
 						}
@@ -336,18 +444,166 @@ $(function () {
 				.done(function(dat){
 
 					// 離開後要停止監控房間
-					clearInterval(Event_RefreshRoomStatus);
+					Event_RefreshRoomStatus = false;
+					Event_RefreshWaitGameStart = false;
 					alert('離開第' + Int_RoomID + '桌') ;
 
 					// 暫時加入按鈕 (暫時解法)
-					UI_Stage.append('<button id="Btn_Start" class="ui-btn ui-btn-inline">START</button>') ;
-					$('#Btn_Start').trigger('click').remove() ;
+					UI_Stage
+						.append('<button id="Btn_Start" class="ui-btn ui-btn-inline">START</button>')
+						.find('#Btn_Start')
+						.trigger('click')
+						.remove() ;
 				}) ;
-		})
+		});
+
+//---- Stage.3 ----
+	UI_Stage
+		// Stage.3 過場動畫
+		.on('_SHOW_GAME_ORDER', function(){
+			clearStage()
+				.done(function () {
+					API.room.status.get({Int_RoomID: Int_RoomID, callback:'jsonp_userorder2'})
+						.done(function (data) {
+							Int_PlayerCount = 0;
+							Int_ShowGameOrderIndex = 0;
+							
+							// 過場版型
+							var _makeShowOrder = (function(){
+								var tpl = "<div id=\"Div_ShowGameOrder\">";
+								$.each(data, function(idx, dat){
+									if (dat.isempty == true){
+										return;
+									}
+									
+									Int_PlayerCount++;
+
+									if (dat.isself == true) {
+										tpl += "<div class=\"isYou\">" + dat.order + "</div>";
+									} else {
+										tpl += "<div>" + dat.order + "</div>";
+									}
+								});
+
+								tpl += "</div>";
+								UI_Stage.html(tpl);
+							})();
+
+							// 排序 IN
+							var orderAnimation = function () {
+								if (Int_PlayerCount == Int_ShowGameOrderIndex) {
+									Int_ShowGameOrderIndex = 0;
+									clearTimeout(Event_Showorder);
+
+									// 排序 out
+									var _orderOutAnimation = function () {
+										if (Int_PlayerCount == Int_ShowGameOrderIndex) {
+											clearTimeout(Event_out) ;
+
+											UI_Stage.trigger('_SHOW_CARD');
+											return;
+										}else{
+											$("#Div_ShowGameOrder div")
+												.eq(Int_ShowGameOrderIndex)
+												.css("opacity", 0)
+												.addClass("orderOutAnimation");
+
+												Int_ShowGameOrderIndex ++;
+												
+											Event_out = setTimeout(_orderOutAnimation, Int_ShowGameOrderTime);
+										}
+									}
+
+									_orderOutAnimation();
+								}else{
+									$("#Div_ShowGameOrder div")
+										.eq(Int_PlayerCount - 1 - Int_ShowGameOrderIndex)
+										.css("opacity", 1)
+										.addClass("orderInAnimation");
+
+									Int_ShowGameOrderIndex ++;
+
+									Event_Showorder = setTimeout(orderAnimation, Int_ShowGameOrderTime);
+								}
+							};
+
+							orderAnimation();
+						}) ;
+
+					startStage();
+				}) ;
+		});
+
+//---- Stage.4 ----
+	UI_Stage
+		// Stage.4 發牌階段 新局開始
+		.on('_SHOW_CARD', function(){
+			API.card.show.self.get({Int_RoomID : Int_RoomID})
+				.done(function (data) {
+					// 由最後階段回來時需要做
+					UI_LightBox
+						.hide(Int_LightBoxProcessTime);
+					$('#Div_Answer').hide();
+						
+					startStage();
+					
+					
+
+					var card = data.cards ;
+
+					// 卡片版型
+					var _makeCard = (function () {
+						var tpl = "<div id=\"Div_ShowCard\">";
+
+						$.each(data.cards, function(idx, Int_CardID){
+							tpl += "<div class=\"showCard\">" +
+									"<img data-card-id=\"" + Int_CardID +"\" src=\"media/card/" + Int_CardID + ".png\" />" +
+									"</div>";
+						})
+
+						tpl += "</div>";
+						UI_Stage.html(tpl);
+					})();
+					
+					// 發牌動畫
+					var showCardInAnimation = function () {
+						console.log(Int_ShowCardCount, Int_ShowCardIndex) ;
+
+						if (Int_ShowCardCount == Int_ShowCardIndex) {
+							clearTimeout(Event_CardIn);
+
+							Int_ShowCardIndex = 0;
+							if (Bool_IsTeller == true) {
+								startChooseCard();
+							} else {
+								lookChooseCard();
+								waitChooseCard();
+							}
+							return ;
+						}
+						else{
+							// 修正 不然會看不到
+							//$('#Div_ShowCard div').css('opacity',1) ;
+						
+							$("#Div_ShowCard .showCard")
+								.eq(Int_ShowCardCount - 1 - Int_ShowCardIndex)
+								.css("opacity", 1)
+								.addClass("showCardInAnimation");
+
+							Int_ShowCardIndex ++;
+							
+							Event_CardIn = setTimeout(showCardInAnimation, Int_ShowCardTime);
+						}
+					};
+
+					showCardInAnimation() ;
+				}) ;
+		});
+
+	UI_Stage
 		// 猜說書人牌階段的按鈕
 		.on("click", ".voteCard button", function(e){
 
-			
 			Int_VoteID = $(e.target).data("vote-id");
 			
 			if (Int_VoteID == Int_ChooseCardID){
@@ -387,233 +643,16 @@ $(function () {
 		})
 		// 再玩一局
 		.on('click', 'button#PlayAgain', function(){
-			$(document).trigger('_SHOW_CARD') ;
+			UI_Stage.trigger('_SHOW_CARD') ;
 		});
 
 	$(document)
-		// Stage.2 房間內
-		.on('_ENTER_ROOM', function(e, opt){
-			API.room.enter(opt)
-				.done(function(dat){
-					if (dat.success == true){
-						API.room.status.get({Int_RoomID: Int_RoomID, callback: 'jsonp_userorder1'})
-							.done(function (data){
-								Bool_IsTeller = false ;
-								clearStage()
-									.done(function () {
-
-										// 房間版型
-										var _makeTable = (function(){
-											var tables = ''
-											$.each(data, function(idx, dat){
-												tables += '<td data-id="' + idx + '" class="' + (dat.isself ? 'isYou' : '' ) + (dat.isempty ? ' isNotSit' : ' isSit' ) + '" >' + dat.order + '</td>' ;
-
-												if ((idx+1) % 4 == 0  && idx != 7){
-													tables += '</tr><tr>' ;
-												}
-
-												if (idx == 0 && dat.isself)
-												{
-													Bool_IsTeller = true
-												}
-										　	}) ;
-
-											var tpl = 	'<div id="Div_Room">' +
-														'<table>' +
-															'<tr>' +
-															tables +
-															'</tr>' +
-														'</table>' +
-															'<div id="Div_RoomBtn">' +
-																'<button id="Btn_ReadyStart" class="ui-btn ui-btn-inline">準備</button>' +
-																'<button id="Btn_Exit" class="ui-btn ui-btn-inline">離開</button>' +
-															'</div>' +
-														'</div>' ;
-
-											UI_Stage.html(tpl);
-											UI_Room = $("#Div_Room");
-											UI_ReadyBtn = UI_Room.find("#Btn_ReadyStart");
-											if (Bool_IsTeller) {
-												UI_ReadyBtn.text("開始").attr("disabled", true);
-											}
-										})();
-
-										// 持續檢查 房間狀態, 房間UI
-										var getRoomStatus = function () {
-											API.room.status.get({Int_RoomID: Int_RoomID, callback: 'jsonp_roomuicheck'})
-												.done(function (data) {
-													var bool_canStart = true ;
-
-													$.each(data, function(idx, dat){
-														var UI_NowTd = UI_Room.find("table td").eq(idx);
-
-														UI_NowTd.removeClass('isNotSit isSit isReady') ;
-														UI_NowTd.addClass((dat.isempty == true) ? 'isNotSit' : 'isSit') ;
-
-														if (dat.isready == true && dat.isempty == false){
-															UI_NowTd.addClass('isReady') ;
-														}
-
-														bool_canStart = (idx != 0) ? (bool_canStart && dat.isready) : bool_canStart ;
-													});
-
-													// 說書人檢查遊戲開始
-													if (Bool_IsTeller) {
-														// 人員準備好 且 房內大於等於最低人數
-														var isOK = bool_canStart && ($('td.isSit').length >= Int_LeastPlayerNum) ;
-														UI_ReadyBtn.prop("disabled", !isOK) ;
-													}else{
-														//var isTellerNotInRoom = (data[0].isempty == true) ;
-														//UI_ReadyBtn.prop("disabled", isTellerNotInRoom) ;
-													}
-													
-													
-													Event_RefreshRoomStatus = setTimeout(getRoomStatus, Int_RefreshTime);
-												}) ;
-										}
-
-										getRoomStatus()
-										
-
-										startStage();
-									});
-							}) ;
-					}
-				}) ;
-		})
-		// Stage.3 過場動畫
-		.on('_SHOW_GAME_ORDER', function(){
-			clearStage()
-				.done(function () {
-					API.room.status.get({Int_RoomID: Int_RoomID, callback:'jsonp_userorder2'})
-						.done(function (data) {
-							Int_PlayerCount = 0;
-							Int_ShowGameOrderIndex = 0;
-							
-							// 過場版型
-							var _makeShowOrder = (function(){
-								var ShowGameOrderHTML = "<div id=\"Div_ShowGameOrder\">";
-								$.each(data, function(idx, dat){
-									if (dat.isempty == true){
-										return;
-									}
-									
-									Int_PlayerCount++;
-
-									if (dat.isself == true) {
-										ShowGameOrderHTML += "<div class=\"isYou\">" + dat.order + "</div>";
-									} else {
-										ShowGameOrderHTML += "<div>" + dat.order + "</div>";
-									}
-								});
-
-								ShowGameOrderHTML += "</div>";
-								UI_Stage.html(ShowGameOrderHTML);
-							})();
-
-							// 排序 IN
-							var orderAnimation = function () {
-								if (Int_PlayerCount == Int_ShowGameOrderIndex) {
-									Int_ShowGameOrderIndex = 0;
-									clearTimeout(Event_Showorder);
-
-									// 排序 out
-									var _orderOutAnimation = function () {
-										if (Int_PlayerCount == Int_ShowGameOrderIndex) {
-											clearTimeout(Event_out) ;
-
-											$(document).trigger('_SHOW_CARD');
-											return;
-										}else{
-											$("#Div_ShowGameOrder div")
-												.eq(Int_ShowGameOrderIndex)
-												.css("opacity", 0)
-												.addClass("orderOutAnimation");
-
-												Int_ShowGameOrderIndex ++;
-												
-											Event_out = setTimeout(_orderOutAnimation, Int_ShowGameOrderTime);
-										}
-									}
-
-									_orderOutAnimation();
-									
-								}else{
-									$("#Div_ShowGameOrder div")
-										.eq(Int_PlayerCount - 1 - Int_ShowGameOrderIndex)
-										.css("opacity", 1)
-										.addClass("orderInAnimation");
-
-									Int_ShowGameOrderIndex ++;
-
-									Event_Showorder = setTimeout(orderAnimation, Int_ShowGameOrderTime);
-								}
-							};
-
-							orderAnimation();
-						}) ;
-
-					startStage();
-				}) ;
-		})
-		// Stage.4 發牌階段 新局開始
-		.on('_SHOW_CARD', function(){
-			API.card.show.self.get({Int_RoomID : Int_RoomID})
-				.done(function (data) {
-					// 由最後階段回來時需要做
-					UI_LightBox.fadeOut(Int_LightBoxProcessTime)
-					startStage();
-
-					var card = data.cards ;
-
-					// 卡片版型
-					var _makeCard = (function () {
-						var ShowCard = "<div id=\"Div_ShowCard\">";
-						for (var i in card) {
-							var Int_CardID = card[i];
-							ShowCard += "<div class=\"showCard\">" +
-										"<img data-card-id=\"" + Int_CardID +"\" src=\"media/card/" + Int_CardID + ".png\" />" +
-										"</div>";
-						}
-						ShowCard += "</div>";
-						UI_Stage.html(ShowCard);
-					})();
-
-					UI_ShowCardDIV = $("#Div_ShowCard");
-
-					// 發牌動畫
-					var showCardInAnimation = function () {
-						if (Int_ShowCardCount == Int_ShowCardIndex) {
-							clearTimeout(Event_CardIn);
-
-							Int_ShowCardIndex = 0;
-							if (Bool_IsTeller == true) {
-								startChooseCard();
-							} else {
-								lookChooseCard();
-								waitChooseCard();
-							}
-							return ;
-						}
-						else{
-							$("#Div_ShowCard .showCard")
-								.eq(Int_ShowCardCount - 1 - Int_ShowCardIndex)
-								.css("opacity", 1)
-								.addClass("showCardInAnimation");
-
-							Int_ShowCardIndex ++;
-							
-							Event_CardIn = setTimeout(showCardInAnimation, Int_ShowCardTime);
-						}
-					};
-
-					showCardInAnimation() ;
-				}) ;
-		})
 		// Stage.4 出牌階段結束, 卡片移除
 		.on('_OUT_CARD', function(){
-				var showCardOutAnimation = function  () {
+				var showCardOutAnimation = function() {
 					if (Int_ShowCardCount == Int_ShowCardIndex) {
+					
+						Int_ShowCardIndex = 0;
 						$(document).trigger('_SHOW_VOTE_CARD');
 						return ;
 					}
@@ -634,20 +673,18 @@ $(function () {
 				.done(function (data) {
 					// 投票版型
 					var _makeVote = (function(){
-						var VoteCardHTML = "<div id=\"Div_ShowVoteCard\"><div class=\"voteCardRow\">";
+						var tpl = "<div id=\"Div_ShowVoteCard\"><div class=\"voteCardRow\">";
 						
 						$.each(data.cards, function(i, card){
-							VoteCardHTML += "<span class=\"voteCard\">" +
+							tpl += "<span class=\"voteCard\">" +
 											"<button data-vote-id=\""+ card + "\" >OK</button>" +
 											"<img src=\"media/card/" + card + ".png\" />" +
 											"</span>";
-							if (i != 0 && i % 3 == 0) {
-								VoteCardHTML += "</div><div class=\"voteCardRow\">";
-							}
+							tpl += (i != 0 && i % 3 == 0) ? "</div><div class=\"voteCardRow\">" : '' ;
 						});
 
-						VoteCardHTML += "</div></div>";
-						UI_Stage.html(VoteCardHTML);
+						tpl += "</div></div>";
+						UI_Stage.html(tpl);
 						UI_ShowVoteCardDIV = $("#Div_ShowVoteCard");
 						UI_ShowVoteCardDIV.fadeIn(Int_AnimationTime);
 					})();
@@ -711,6 +748,8 @@ $(function () {
 		Int_ChooseCardID = $(e.target).data("card-id");
 		UI_LightBox.fadeIn(Int_LightBoxProcessTime);
 		UI_LightBox.find("#Div_ShowChooseCard img").attr("src", "media/card/" + Int_ChooseCardID + ".png");
+
+		$('#Div_LightBoxContent').show();
 	}
 
 	// 所有玩家選完牌後要過場動畫
@@ -757,7 +796,7 @@ $(function () {
 	function lookChooseCard () {
 		UI_LightBox.fadeOut(Int_LightBoxProcessTime);
 		
-		UI_ShowCardDIV
+		$("#Div_ShowCard")
 			.find(".showCard")
 			.removeClass("isCanChoose")
 			.end()
@@ -768,7 +807,7 @@ $(function () {
 	}
 
 	function startChooseCard () {
-		UI_ShowCardDIV
+		$("#Div_ShowCard")
 			.find(".showCard")
 			.addClass("isCanChoose")
 			.end()
@@ -789,7 +828,7 @@ $(function () {
 				$.each(data, function(idx, dat){
 					bool_canShowAnswer = (bool_canShowAnswer && dat.isready);
 				});
-
+				
 				if (bool_canShowAnswer == true) {
 					$(document).trigger('_SHOW_ANSWER');
 				} else {

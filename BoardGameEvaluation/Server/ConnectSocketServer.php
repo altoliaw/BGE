@@ -15,8 +15,8 @@ $int_MaximumSocketLength							=133693415;
 $int_MaximumSocketListener						=50;
 $int_MaximunManInTable							=8;
 $int_MaximunTableNumber							=9;
-$int_MaximumNumberPokerForEachMan	=4;
-$int_TotalNumberOfPoker							=40;
+$int_MaximumNumberPokerForEachMan	=5;
+$int_TotalNumberOfPoker							=55;
 $int_Round														=2;
 
 //Start

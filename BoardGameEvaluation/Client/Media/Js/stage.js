@@ -557,7 +557,7 @@ $(function () {
 
 						$.each(data.cards, function(idx, Int_CardID){
 							tpl += "<div class=\"showCard\">" +
-									"<img data-card-id=\"" + Int_CardID +"\" src=\"media/card/" + Int_CardID + ".png\" />" +
+									"<img data-card-id=\"" + Int_CardID +"\" src=\"Media/Card/" + Int_CardID + ".png\" />" +
 									"</div>";
 						})
 
@@ -678,7 +678,7 @@ $(function () {
 						$.each(data.cards, function(i, card){
 							tpl += "<span class=\"voteCard\">" +
 											"<button data-vote-id=\""+ card + "\" >OK</button>" +
-											"<img src=\"media/card/" + card + ".png\" />" +
+											"<img src=\"Media/Card/" + card + ".png\" />" +
 											"</span>";
 							tpl += (i != 0 && i % 3 == 0) ? "</div><div class=\"voteCardRow\">" : '' ;
 						});
@@ -714,7 +714,7 @@ $(function () {
 
 							for (var i in result) {
 								AnswerItemsHTML +=  "<div class=\"Div_AnswerItem\">" +
-													"<img src=\"media/card/" + result[i].cardid + ".png\" />" +
+													"<img src=\"Media/Card/" + result[i].cardid + ".png\" />" +
 													"<div class=\"Div_VotePeople\">";
 
 								if (result[i].isanswer == true) {
@@ -747,7 +747,7 @@ $(function () {
 	function showLightBox(e) {
 		Int_ChooseCardID = $(e.target).data("card-id");
 		UI_LightBox.fadeIn(Int_LightBoxProcessTime);
-		UI_LightBox.find("#Div_ShowChooseCard img").attr("src", "media/card/" + Int_ChooseCardID + ".png");
+		UI_LightBox.find("#Div_ShowChooseCard img").attr("src", "Media/Card/" + Int_ChooseCardID + ".png");
 
 		$('#Div_LightBoxContent').show();
 	}

@@ -5,6 +5,8 @@ var options = {
 /* Debug */
 var Bool_IsTellerProcess;
 
+var Bool_IsPadFone = false;
+
 var Bool_IsTeller;
 var bool_IsTellerInRoom = false ;
 var UI_Stage;		// #Div_Stage		

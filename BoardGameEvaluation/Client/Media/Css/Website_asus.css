@@ -1,0 +1,23 @@
+#Div_Logo {
+	top: 266px;
+	left: 105px;
+}
+#Div_Button {
+	top: 350px;
+	left: 148px;
+}
+
+#Div_ChooseRoom{
+	top: 147px;
+	left: 21px;
+}
+
+#Div_Room {
+	top: 185px;
+	left: 18px;
+}
+
+.Div_VotePeople {
+	line-height: 125px;
+	font-size: 12px;
+}

@@ -183,8 +183,28 @@ var API = {
 } ;
 
 $(function () {
+	$.fn.setNewPostion = function(){
+		return this
+				.each(function(){
+					var w_h = $(window).height();
+					var w_w = $(window).width();
+					
+					var self_h = $(this).height();
+					var self_w = $(this).width();
+					
+					$(this).offset({top: (w_h - self_h)/2, left: (w_w - self_w) /2});
+				});
+	};
+	
+	
+
 
 	UI_Stage = $("#Div_Stage") ;
+
+	if (navigator.userAgent.search('PadFone Infinity') != -1){
+		Bool_IsPadFone = true;
+		$('<link>').attr({type: 'text/css',rel: 'stylesheet',href:'./Media/Css/Website_asus.css'}).appendTo('head');
+	}
 
 //---- Stage.0 大廳前 ----
 	UI_Stage
@@ -217,6 +237,8 @@ $(function () {
 					}();
 
 					
+
+					
 					Event_RefreshChooseRoomStatus = true ;
 					
 					// 持續檢查 房間狀態, 大廳UI
@@ -240,7 +262,13 @@ $(function () {
 					};
 
 					getChooseRoomStatus();
-					startStage();
+					startStage()
+						.done(function(){
+							if(Bool_IsPadFone == true){
+								$('#Div_ChooseRoom')
+									.setNewPostion();
+							}
+						});
 				});
 		})
 		// Stage.0 Set Guid
@@ -530,7 +558,12 @@ $(function () {
 							orderAnimation();
 						}) ;
 
-					startStage();
+					startStage()
+						.done(function(){
+							if(Bool_IsPadFone == true){
+								$('#Div_ShowGameOrder').setNewPostion();
+							}
+						});
 				}) ;
 		});
 
@@ -567,8 +600,6 @@ $(function () {
 					
 					// 發牌動畫
 					var showCardInAnimation = function () {
-						console.log(Int_ShowCardCount, Int_ShowCardIndex) ;
-
 						if (Int_ShowCardCount == Int_ShowCardIndex) {
 							clearTimeout(Event_CardIn);
 
@@ -584,7 +615,7 @@ $(function () {
 						else{
 							// 修正 不然會看不到
 							//$('#Div_ShowCard div').css('opacity',1) ;
-						
+
 							$("#Div_ShowCard .showCard")
 								.eq(Int_ShowCardCount - 1 - Int_ShowCardIndex)
 								.css("opacity", 1)
@@ -597,6 +628,10 @@ $(function () {
 					};
 
 					showCardInAnimation() ;
+					
+					if (Bool_IsPadFone == true){
+						$('#Div_ShowCard').setNewPostion();
+					}
 				}) ;
 		});
 
@@ -615,6 +650,8 @@ $(function () {
 			UI_LightBox.fadeOut(Int_AnimationTime);
 			UI_ShowVoteCardDIV.find(".voteCard img").removeClass("isLock").removeClass("isChoose");
 			$(".isShowButton").css("display", "none").removeClass(".isShowButton");
+			
+			
 
 			API.card.vote.set({Int_VoteID : Int_VoteID, Int_RoomID: Int_RoomID})
 				.done(function (data) {
@@ -687,6 +724,11 @@ $(function () {
 						UI_Stage.html(tpl);
 						UI_ShowVoteCardDIV = $("#Div_ShowVoteCard");
 						UI_ShowVoteCardDIV.fadeIn(Int_AnimationTime);
+						
+						if (Bool_IsPadFone == true){
+							$('#Div_ShowVoteCard')
+								.setNewPostion();
+						}
 					})();
 
 					if (Bool_IsTeller) {
@@ -704,6 +746,11 @@ $(function () {
 					UI_LightBox.find("#Div_LightBoxContent").css("display", "none");
 					UI_LightBox.fadeIn(Int_AnimationTime);
 					$("#Div_Answer").fadeIn(Int_AnimationTime);
+					
+					if (Bool_IsPadFone == true){
+						$("#Div_Answer").setNewPostion();
+					}
+					
 
 					// getAnswer
 					API.game.result.get({ Int_RoomID : Int_RoomID })
@@ -749,7 +796,13 @@ $(function () {
 		UI_LightBox.fadeIn(Int_LightBoxProcessTime);
 		UI_LightBox.find("#Div_ShowChooseCard img").attr("src", "Media/Card/" + Int_ChooseCardID + ".png");
 
-		$('#Div_LightBoxContent').show();
+		$('#Div_LightBoxContent')
+			.show();
+
+		if(Bool_IsPadFone == true){
+			$('#Div_LightBoxContent')
+				.setNewPostion();
+		}
 	}
 
 	// 所有玩家選完牌後要過場動畫
@@ -795,7 +848,7 @@ $(function () {
 
 	function lookChooseCard () {
 		UI_LightBox.fadeOut(Int_LightBoxProcessTime);
-		
+
 		$("#Div_ShowCard")
 			.find(".showCard")
 			.removeClass("isCanChoose")
@@ -804,6 +857,7 @@ $(function () {
 			.addClass("isLock")
 			.end()
 			.off("click", ".showCard", showLightBox);
+
 	}
 
 	function startChooseCard () {

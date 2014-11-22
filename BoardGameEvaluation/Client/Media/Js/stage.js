@@ -858,6 +858,9 @@ $(function () {
 			.end()
 			.off("click", ".showCard", showLightBox);
 
+		if(Bool_IsPadFone == true){
+			addFilter();
+		}
 	}
 
 	function startChooseCard () {
@@ -869,6 +872,10 @@ $(function () {
 			.removeClass("isLock")
 			.end()
 			.on("click", ".showCard", showLightBox);
+
+		if(Bool_IsPadFone == true){
+			removeFilter();
+		}
 	}
 
 	function lockVoteCard() {
@@ -876,6 +883,11 @@ $(function () {
 	}
 
 	function waitUserVoteCard () {
+		if(Bool_IsPadFone == true){
+			addFilter();
+		}
+	
+	
 		API.card.vote.get({Int_RoomID : Int_RoomID})
 			.done(function (data) {
 				var bool_canShowAnswer = true;
@@ -884,6 +896,10 @@ $(function () {
 				});
 				
 				if (bool_canShowAnswer == true) {
+					if(Bool_IsPadFone == true){
+						removeFilter();
+					}
+				
 					$(document).trigger('_SHOW_ANSWER');
 				} else {
 					setTimeout(waitUserVoteCard, Int_RefreshTime);
@@ -895,6 +911,10 @@ $(function () {
 	function startVote() {
 		UI_ShowVoteCardDIV.find(".voteCard img").addClass("isCanChoose");
 		UI_Stage.on("click", "img", chooseVoteCard);
+		
+		if(Bool_IsPadFone == true){
+			removeFilter();
+		}
 	}
 	
 	function chooseVoteCard(e) {
@@ -929,5 +949,20 @@ $(function () {
 		$(".isShowButton")
 			.hide()
 			.removeClass(".isShowButton");
+	}
+	
+	
+	function addFilter(){
+		var filter = '<div id="Div_Filter" style="position: absolute;width: 100%;min-height: 100%;background: rgba(0, 0, 0, 0.5);z-index: 999;text-align: center;">'
+					+	'<span style="position: absolute;background: white;">請等待其他玩家...</span>'
+					+'</div>';
+					
+		$('body').append(filter);
+		
+		$('#Div_Filter span').setNewPostion();
+	}
+	
+	function removeFilter(){
+		$('#Div_Filter').remove();
 	}
 });

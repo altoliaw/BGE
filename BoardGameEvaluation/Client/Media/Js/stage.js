@@ -950,16 +950,17 @@ $(function () {
 			.hide()
 			.removeClass(".isShowButton");
 	}
-	
-	
+
 	function addFilter(){
-		var filter = '<div id="Div_Filter" style="position: absolute;width: 100%;min-height: 100%;background: rgba(0, 0, 0, 0.5);z-index: 999;text-align: center;">'
-					+	'<span style="position: absolute;background: white;">請等待其他玩家...</span>'
-					+'</div>';
-					
-		$('body').append(filter);
-		
-		$('#Div_Filter span').setNewPostion();
+		if ($('#Div_Filter').size() == 0){
+			var filter = '<div id="Div_Filter" style="position: absolute;width: 100%;min-height: 100%;background: rgba(0, 0, 0, 0.5);z-index: 999;text-align: center;">'
+						+	'<span style="position: absolute;background: white;">請等待其他玩家...</span>'
+						+'</div>';
+						
+			$('body').append(filter);
+
+			$('#Div_Filter span').setNewPostion();
+		}
 	}
 	
 	function removeFilter(){
